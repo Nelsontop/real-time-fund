@@ -1414,7 +1414,6 @@ function GroupSummary({ funds, holdings, groupName, getProfit }) {
               style={{ fontSize: '18px', fontWeight: 700, fontFamily: 'var(--font-mono)' }}
             >
               <span style={{ marginRight: 1 }}>{summary.totalProfitToday > 0 ? '+' : summary.totalProfitToday < 0 ? '-' : ''}</span>
-              <span style={{ marginRight: 1 }}>¥</span>
               <CountUp value={Math.abs(summary.totalProfitToday)} style={{ fontSize: metricSize }} />
             </div>
           </div>
@@ -1431,7 +1430,6 @@ function GroupSummary({ funds, holdings, groupName, getProfit }) {
                 <CountUp value={Math.abs(summary.returnRate)} suffix="%" style={{ fontSize: metricSize }} />
               ) : (
                 <>
-                  <span style={{ marginRight: 1 }}>¥</span>
                   <CountUp value={Math.abs(summary.totalHoldingReturn)} style={{ fontSize: metricSize }} />
                 </>
               )}
@@ -2898,14 +2896,42 @@ export default function HomePage() {
                                 <span className="muted code-text">#{f.code}</span>
                               </div>
                             </div>
-                            <div className="table-cell text-right value-cell">
-                              <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
-                            </div>
-                            <div className="table-cell text-right change-cell">
-                              <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
-                                {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
-                              </span>
-                            </div>
+                            {(() => {
+                              const now = new Date();
+                              const isAfter9 = now.getHours() >= 9;
+                              const hasTodayData = f.jzrq === todayStr;
+                              const shouldHideChange = isTradingDay && isAfter9 && !hasTodayData;
+                              
+                              if (!shouldHideChange) {
+                                // 如果涨跌幅列显示（即非交易时段或今日净值已更新），则显示单位净值和真实涨跌幅
+                                return (
+                                  <>
+                                    <div className="table-cell text-right value-cell">
+                                      <span style={{ fontWeight: 700 }}>{f.dwjz ?? '—'}</span>
+                                    </div>
+                                    <div className="table-cell text-right change-cell">
+                                      <span className={f.zzl > 0 ? 'up' : f.zzl < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
+                                        {f.zzl !== undefined ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '--'}
+                                      </span>
+                                    </div>
+                                  </>
+                                );
+                              } else {
+                                // 否则显示估值净值和估值涨跌幅
+                                return (
+                                  <>
+                                    <div className="table-cell text-right value-cell">
+                                      <span style={{ fontWeight: 700 }}>{f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')}</span>
+                                    </div>
+                                    <div className="table-cell text-right change-cell">
+                                      <span className={f.estPricedCoverage > 0.05 ? (f.estGszzl > 0 ? 'up' : f.estGszzl < 0 ? 'down' : '') : (Number(f.gszzl) > 0 ? 'up' : Number(f.gszzl) < 0 ? 'down' : '')} style={{ fontWeight: 700 }}>
+                                        {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : f.gszzl ?? '—')}
+                                      </span>
+                                    </div>
+                                  </>
+                                );
+                              }
+                            })()}
                             <div className="table-cell text-right time-cell">
                               <span className="muted" style={{ fontSize: '12px' }}>{f.gztime || f.time || '-'}</span>
                             </div>
@@ -2950,6 +2976,8 @@ export default function HomePage() {
                               <div className="title-text">
                                 <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                                   {f.name}
+                                  {console.log('jzrq', f.jzrq)}
+                                  {console.log('todayStr', todayStr)}
                                   {f.jzrq === todayStr && (
                                     <span 
                                       title="今日净值已更新" 
