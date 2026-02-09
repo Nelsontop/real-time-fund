@@ -51,3 +51,18 @@ export const supabase = isSupabaseConfigured ? createClient(supabaseUrl, supabas
         detectSessionInUrl: true
     }
 }) : createNoopSupabase();
+
+// 获取当前环境的重定向 URL
+export const getRedirectUrl = () => {
+    if (typeof window === 'undefined') return undefined;
+    // GitHub Pages 部署环境
+    if (window.location.hostname === 'nelsontop.github.io') {
+        return 'https://nelsontop.github.io/real-time-fund/';
+    }
+    // 本地开发环境
+    if (window.location.hostname === 'localhost') {
+        return 'http://localhost:3000';
+    }
+    // 其他环境使用当前域名
+    return window.location.origin;
+};

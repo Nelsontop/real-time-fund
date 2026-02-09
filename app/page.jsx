@@ -12,7 +12,7 @@ import { DatePicker, DonateTabs, NumericInput, Stat } from "./components/Common"
 import { ChevronIcon, CloseIcon, CloudIcon, DragIcon, ExitIcon, GridIcon, ListIcon, LoginIcon, LogoutIcon, MailIcon, PlusIcon, RefreshIcon, SettingsIcon, SortIcon, StarIcon, TrashIcon, UpdateIcon, UserIcon } from "./components/Icons";
 import githubImg from "./assets/github.svg";
 import weChatGroupImg from "./assets/weChatGroup.png";
-import { supabase, isSupabaseConfigured } from './lib/supabase';
+import { supabase, isSupabaseConfigured, getRedirectUrl } from './lib/supabase';
 import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback, fetchFundHistoryNetValue } from './api/fund';
 import packageJson from '../package.json';
 
@@ -2967,7 +2967,9 @@ export default function HomePage() {
       const { error } = await supabase.auth.signInWithOtp({
         email: loginEmail.trim(),
         options: {
-          shouldCreateUser: true
+          shouldCreateUser: true,
+          // 设置邮件验证链接的回调地址
+          emailRedirectTo: getRedirectUrl()
         }
       });
       if (error) throw error;
