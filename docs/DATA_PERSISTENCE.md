@@ -118,12 +118,62 @@ Object.keys(data).forEach(key => localStorage.setItem(key, data[key]));
 使用项目提供的备份脚本：
 
 ```bash
-# 运行备份脚本
+# 运行备份提示脚本
 bash scripts/backup-data.sh
+```
 
-# 或添加到 crontab 定期备份
-# 每周日凌晨 2 点执行
-0 2 * * 0 /path/to/real-time-fund/scripts/backup-data.sh
+---
+
+## 🧪 测试备份功能
+
+项目提供了测试工具来验证备份功能：
+
+### 1. 备份文件验证工具
+
+验证导出的 JSON 文件格式是否正确：
+
+```bash
+# 验证备份文件
+node scripts/validate-backup.js ~/Downloads/realtime-fund-config-*.json
+```
+
+**验证内容**：
+- JSON 格式是否正确
+- 必需字段是否完整
+- 数据类型是否正确
+- 基金数据结构是否有效
+
+**示例输出**：
+```
+✅ JSON 格式正确
+✓ funds: 数组 (1 项)
+✓ favorites: 数组 (2 项)
+✓ groups: 数组 (1 项)
+✓ refreshMs: 数字 (30000ms)
+...
+✅ 文件验证通过！备份文件格式正确。
+```
+
+### 2. 完整功能测试
+
+运行完整的备份功能测试流程：
+
+```bash
+bash scripts/test-backup.sh
+```
+
+**测试内容**：
+1. 导出功能测试
+2. 导入功能测试
+3. 文件格式验证
+4. 边界情况测试
+
+### 3. 示例备份文件
+
+项目包含一个示例备份文件用于参考：
+
+```bash
+cat scripts/backup-example.json
 ```
 
 ---

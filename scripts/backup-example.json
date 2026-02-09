@@ -1,0 +1,43 @@
+{
+  "funds": [
+    {
+      "code": "110022",
+      "name": "易方达消费行业股票",
+      "dwjz": 1.234,
+      "gsz": 1.245,
+      "gszzl": 0.89,
+      "zzl": 1.23,
+      "jzrq": "2024-01-15",
+      "gztime": "15:00:00",
+      "holdings": [
+        {
+          "name": "贵州茅台",
+          "change": 1.5,
+          "weight": "8.52%"
+        },
+        {
+          "name": "五粮液",
+          "change": -0.8,
+          "weight": "6.23%"
+        }
+      ]
+    }
+  ],
+  "favorites": ["110022", "163402"],
+  "groups": [
+    {
+      "id": "group_1",
+      "name": "消费类",
+      "codes": ["110022"]
+    }
+  ],
+  "refreshMs": 30000,
+  "holdings": {
+    "110022": {
+      "share": 1000,
+      "cost": 1.2
+    }
+  },
+  "pendingTrades": [],
+  "exportedAt": "2024-01-15T15:30:00.000Z"
+}
