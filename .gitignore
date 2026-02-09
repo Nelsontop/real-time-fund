@@ -80,3 +80,6 @@ fabric.properties
 /node_modules/
 /.next/
 .vscode/
+
+.env.local
+.DS_Store
