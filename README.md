@@ -2,7 +2,7 @@
 
 一个基于 Next.js 开发的纯前端基金估值与重仓股实时追踪工具。采用玻璃拟态设计（Glassmorphism），支持移动端适配，且无需后端服务器即可运行。
 
-预览地址：[https://hzm0321.github.io/real-time-fund/](https://hzm0321.github.io/real-time-fund/)
+预览地址：[https://Nelsontop.github.io/real-time-fund/](https://Nelsontop.github.io/real-time-fund/)
 
 ## ✨ 特性
 
@@ -39,7 +39,7 @@
 
 ```bash
 # 克隆仓库
-git clone https://github.com/hzm0321/real-time-fund.git
+git clone https://github.com/Nelsontop/real-time-fund.git
 cd real-time-fund
 
 # 启动服务（自动构建）
@@ -212,7 +212,7 @@ real-time-fund/
 
 ---
 
-Made by [hzm](https://github.com/hzm0321)
+Made by [hzm](https://github.com/Nelsontop)
 
 ## 🙏 致谢
 

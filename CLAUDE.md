@@ -220,7 +220,7 @@ See `docs/DATA_PERSISTENCE.md` for detailed backup instructions.
 
 - **No build-time environment variables** needed for core functionality
 - Supabase credentials are hardcoded in `app/lib/supabase.js` (anon key is safe for client-side)
-- Google Analytics only loads on `hzm0321.github.io` domain (see AnalyticsGate component)
+- Google Analytics only loads on `Nelsontop.github.io` domain (see AnalyticsGate component)
 - **Data storage**: All in browser localStorage - container restart does not affect user data
 
 ## Common Issues & Solutions
