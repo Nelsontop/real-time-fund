@@ -404,3 +404,45 @@ export const submitFeedback = async (formData) => {
   });
   return response.json();
 };
+
+export const fetchFundHistoryNetValue = async (code, endDate, months) => {
+  if (typeof window === 'undefined') return [];
+  const today = nowInTz();
+  const end = endDate ? toTz(endDate) : today;
+  const start = end.subtract(months, 'month');
+  const startDate = start.format('YYYY-MM-DD');
+  const endDateStr = end.format('YYYY-MM-DD');
+
+  // 东方财富历史净值API
+  const url = `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code=${code}&page=1&per=1000&sdate=${startDate}&edate=${endDateStr}`;
+
+  try {
+    await loadScript(url);
+    if (window.apidata && window.apidata.content) {
+      const content = window.apidata.content;
+      if (content.includes('暂无数据')) return [];
+
+      const rows = content.split('<tr>');
+      const data = [];
+      for (const row of rows) {
+        const cells = row.match(/<td[^>]*>(.*?)<\/td>/g);
+        if (cells && cells.length >= 4) {
+          const date = cells[0].replace(/<[^>]+>/g, '').trim();
+          const value = cells[1].replace(/<[^>]+>/g, '').trim();
+          const navDate = dayjs(date, 'YYYY-MM-DD');
+          if (navDate.isValid()) {
+            const num = parseFloat(value);
+            if (!isNaN(num) && num > 0) {
+              data.push({ date, value: num });
+            }
+          }
+        }
+      }
+      return data.sort((a, b) => dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1);
+    }
+    return [];
+  } catch (e) {
+    console.error('Fetch history error:', e);
+    return [];
+  }
+};

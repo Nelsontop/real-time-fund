@@ -2,6 +2,31 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Development Workflow ⚠️ MANDATORY
+
+**All code changes must follow this strict workflow:**
+
+1. **Code Review**: After completing any code changes, perform a thorough self-review using the code-review agent
+2. **Commit**: Create a git commit with descriptive message after review passes
+3. **Test**: Run tests and verify functionality in Docker environment
+4. **Fix Issues**: Address any review feedback or test failures
+5. **Push**: Only push to remote after all reviews pass and tests succeed
+
+**Docker-Only Development**:
+- All local development MUST use Docker (not native Node.js)
+- All testing MUST be done in Docker container
+- Build verification MUST use Docker build
+
+```bash
+# Standard development cycle
+docker build -t real-time-fund .           # Build and verify
+docker run -d -p 3000:3000 --name fund real-time-fund  # Run for testing
+# Manual testing in browser at http://localhost:3000
+docker stop fund && docker rm fund         # Cleanup after testing
+git add . && git commit -m "feat: ..."     # Commit after successful test
+git push                                   # Push only after all checks pass
+```
+
 ## Project Overview
 
 基估宝 (Real-time Fund Valuation) is a pure front-end fund valuation and tracking tool built with Next.js 16 (App Router). It fetches real-time fund data from public Chinese financial APIs using JSONP/Script Tag Injection to bypass CORS restrictions, enabling static deployment on GitHub Pages without a backend server.
@@ -9,24 +34,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ```bash
-# Install dependencies (use --legacy-peer-deps flag)
-npm install --legacy-peer-deps
-
-# Local development (runs on http://localhost:3000)
-npm run dev
-
-# Production build (outputs to ./out directory for static deployment)
-npm run build
-
-# Production server (for Docker/containerized deployment)
-npm start
-
-# Docker build and run
+# Build Docker image (includes dependency installation and build)
 docker build -t real-time-fund .
+
+# Run development container
 docker run -d -p 3000:3000 --name fund real-time-fund
 
-# Docker Compose
+# View logs
+docker logs -f fund
+
+# Stop and remove container
+docker stop fund && docker rm fund
+
+# Rebuild after code changes
+docker build -t real-time-fund . && docker stop fund && docker rm fund && docker run -d -p 3000:3000 --name fund real-time-fund
+
+# Docker Compose (alternative)
 docker compose up -d
+docker compose down
 ```
 
 ## Node Version Requirement

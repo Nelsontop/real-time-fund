@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useMemo, useLayoutEffect, useCallback } fr
 import { motion, AnimatePresence, Reorder } from 'framer-motion';
 import { createAvatar } from '@dicebear/core';
 import { glass } from '@dicebear/collection';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
@@ -13,7 +14,7 @@ import { ChevronIcon, CloseIcon, CloudIcon, DragIcon, ExitIcon, GridIcon, ListIc
 import githubImg from "./assets/github.svg";
 import weChatGroupImg from "./assets/weChatGroup.png";
 import { supabase, isSupabaseConfigured } from './lib/supabase';
-import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback } from './api/fund';
+import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback, fetchFundHistoryNetValue } from './api/fund';
 import packageJson from '../package.json';
 
 dayjs.extend(utc);
@@ -1833,6 +1834,251 @@ function GroupSummary({ funds, holdings, groupName, getProfit }) {
   );
 }
 
+function FundDetailModal({ fund, onClose }) {
+  const [timeRange, setTimeRange] = useState(1); // 1, 3, 6 months
+  const [historyData, setHistoryData] = useState({ 1: [], 3: [], 6: [] });
+  const [loading, setLoading] = useState({ 1: false, 3: false, 6: false });
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!fund?.code) return;
+
+    const fetchAllHistory = async () => {
+      setLoading({ 1: true, 3: true, 6: true });
+      setError(null);
+
+      try {
+        const today = nowInTz();
+        const [data1, data3, data6] = await Promise.all([
+          fetchFundHistoryNetValue(fund.code, today, 1),
+          fetchFundHistoryNetValue(fund.code, today, 3),
+          fetchFundHistoryNetValue(fund.code, today, 6),
+        ]);
+
+        setHistoryData({
+          1: data1,
+          3: data3,
+          6: data6,
+        });
+      } catch (err) {
+        setError('加载历史数据失败');
+        console.error(err);
+      } finally {
+        setLoading({ 1: false, 3: false, 6: false });
+      }
+    };
+
+    fetchAllHistory();
+  }, [fund?.code]);
+
+  const currentData = historyData[timeRange] || [];
+  const currentLoading = loading[timeRange];
+
+  // Calculate period change
+  const periodChange = useMemo(() => {
+    if (!currentData.length) return null;
+    const first = currentData[0]?.value;
+    const last = currentData[currentData.length - 1]?.value;
+    if (!first || !last) return null;
+    return ((last - first) / first) * 100;
+  }, [currentData]);
+
+  // Format chart data
+  const chartData = currentData.map(d => ({
+    date: dayjs(d.date).format('MM/DD'),
+    value: d.value,
+  }));
+
+  return (
+    <motion.div
+      className="modal-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="基金详情"
+      onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      style={{ zIndex: 10003 }}
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+        className="glass card modal"
+        onClick={(e) => e.stopPropagation()}
+        style={{ maxWidth: '600px', width: '90vw', maxHeight: '85vh', overflowY: 'auto' }}
+      >
+        <div className="title" style={{ marginBottom: 20, justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span>📊 基金详情</span>
+          </div>
+          <button className="icon-button" onClick={onClose} style={{ border: 'none', background: 'transparent' }}>
+            <CloseIcon width="20" height="20" />
+          </button>
+        </div>
+
+        {/* Fund Basic Info */}
+        <div style={{ marginBottom: 24 }}>
+          <div className="fund-name" style={{ fontWeight: 600, fontSize: '18px', marginBottom: 8 }}>{fund?.name}</div>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div className="muted" style={{ fontSize: '14px' }}>#{fund?.code}</div>
+            <div className="badge" style={{ fontSize: '12px' }}>
+              {fund?.noValuation ? '净值日期' : '估值时间'}: {fund?.noValuation ? (fund?.jzrq || '-') : (fund?.gztime || fund?.time || '-')}
+            </div>
+          </div>
+
+          <div className="row" style={{ gap: 16, marginBottom: 12 }}>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">单位净值</span>
+              <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>{fund?.dwjz ?? '—'}</span>
+            </div>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">估值净值</span>
+              <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>
+                {fund?.estPricedCoverage > 0.05 ? fund?.estGsz?.toFixed(4) : (fund?.gsz ?? '—')}
+              </span>
+            </div>
+          </div>
+
+          <div className="row" style={{ gap: 16 }}>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">净值涨跌幅</span>
+              <span className={`value ${fund?.zzl > 0 ? 'up' : fund?.zzl < 0 ? 'down' : ''}`} style={{ fontSize: '18px', fontWeight: 600 }}>
+                {fund?.zzl !== undefined ? `${fund?.zzl > 0 ? '+' : ''}${Number(fund?.zzl).toFixed(2)}%` : '—'}
+              </span>
+            </div>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">估值涨跌幅</span>
+              <span className={`value ${fund?.estPricedCoverage > 0.05 ? (fund?.estGszzl > 0 ? 'up' : fund?.estGszzl < 0 ? 'down' : '') : (Number(fund?.gszzl) > 0 ? 'up' : Number(fund?.gszzl) < 0 ? 'down' : '')}`} style={{ fontSize: '18px', fontWeight: 600 }}>
+                {fund?.estPricedCoverage > 0.05 ? `${fund?.estGszzl > 0 ? '+' : ''}${fund?.estGszzl?.toFixed(2)}%` : (typeof fund?.gszzl === 'number' ? `${fund?.gszzl > 0 ? '+' : ''}${fund?.gszzl?.toFixed(2)}%` : fund?.gszzl ?? '—')}
+              </span>
+            </div>
+          </div>
+
+          {fund?.estPricedCoverage > 0.05 && (
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: 12, textAlign: 'right' }}>
+              基于 {Math.round(fund?.estPricedCoverage * 100)}% 持仓估算
+            </div>
+          )}
+        </div>
+
+        {/* History Chart */}
+        <div style={{ marginBottom: 24 }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <div style={{ fontWeight: 600, fontSize: '16px' }}>历史净值走势</div>
+            <div className="tabs-container" style={{ background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 8 }}>
+              <div className="row" style={{ gap: 0 }}>
+                {[1, 3, 6].map(months => (
+                  <button
+                    key={months}
+                    type="button"
+                    className={`tab ${timeRange === months ? 'active' : ''}`}
+                    onClick={() => setTimeRange(months)}
+                    style={{ padding: '6px 12px', fontSize: '12px', borderRadius: 6 }}
+                  >
+                    {months}月
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {currentLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="muted">加载中...</div>
+            </div>
+          ) : error ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="error-text">{error}</div>
+            </div>
+          ) : chartData.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <div className="muted">暂无数据</div>
+            </div>
+          ) : (
+            <>
+              {periodChange !== null && (
+                <div style={{ marginBottom: 12, textAlign: 'center' }}>
+                  <span className="muted">期间涨跌幅：</span>
+                  <span className={`value ${periodChange > 0 ? 'up' : periodChange < 0 ? 'down' : ''}`} style={{ fontSize: '16px', fontWeight: 600, marginLeft: 8 }}>
+                    {periodChange > 0 ? '+' : ''}{periodChange.toFixed(2)}%
+                  </span>
+                </div>
+              )}
+              <div style={{ height: 250, width: '100%' }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                    <XAxis
+                      dataKey="date"
+                      stroke="var(--muted)"
+                      tick={{ fill: 'var(--muted)', fontSize: 12 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                    />
+                    <YAxis
+                      stroke="var(--muted)"
+                      tick={{ fill: 'var(--muted)', fontSize: 12 }}
+                      axisLine={{ stroke: 'rgba(255,255,255,0.2)' }}
+                      domain={['auto', 'auto']}
+                      tickFormatter={(value) => value.toFixed(3)}
+                    />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'rgba(15, 23, 42, 0.95)',
+                        border: '1px solid var(--border)',
+                        borderRadius: '8px',
+                        color: 'var(--text)'
+                      }}
+                      labelStyle={{ color: 'var(--muted)' }}
+                      formatter={(value) => [Number(value).toFixed(4), '净值']}
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="value"
+                      stroke="var(--primary)"
+                      strokeWidth={2}
+                      dot={false}
+                      activeDot={{ r: 6, fill: 'var(--primary)' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </>
+          )}
+        </div>
+
+        {/* Top 10 Holdings */}
+        {fund?.holdings && fund.holdings.length > 0 && (
+          <div>
+            <div style={{ fontWeight: 600, fontSize: '16px', marginBottom: 12 }}>前10重仓股票</div>
+            <div className="list">
+              {fund.holdings.map((h, idx) => (
+                <div className="item" key={idx}>
+                  <div className="row" style={{ alignItems: 'center', gap: 8 }}>
+                    <span className="badge" style={{ fontSize: '12px', minWidth: 24, textAlign: 'center' }}>
+                      {idx + 1}
+                    </span>
+                    <span className="name" style={{ flex: 1 }}>{h.name}</span>
+                  </div>
+                  <div className="values">
+                    {typeof h.change === 'number' && (
+                      <span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ marginRight: 8 }}>
+                        {h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%
+                      </span>
+                    )}
+                    <span className="weight">{h.weight}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function HomePage() {
   const [funds, setFunds] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -1849,8 +2095,8 @@ export default function HomePage() {
   // 全局刷新状态
   const [refreshing, setRefreshing] = useState(false);
 
-  // 收起/展开状态
-  const [collapsedCodes, setCollapsedCodes] = useState(new Set());
+  // 详情弹窗状态
+  const [detailModal, setDetailModal] = useState({ open: false, fund: null });
 
   // 自选状态
   const [favorites, setFavorites] = useState(new Set());
@@ -2387,7 +2633,7 @@ export default function HomePage() {
   }, []);
 
   const storageHelper = useMemo(() => {
-    const keys = new Set(['funds', 'favorites', 'groups', 'collapsedCodes', 'refreshMs', 'holdings', 'pendingTrades']);
+    const keys = new Set(['funds', 'favorites', 'groups', 'refreshMs', 'holdings', 'pendingTrades']);
     const triggerSync = (key, prevValue, nextValue) => {
       if (keys.has(key)) {
         if (key === 'funds') {
@@ -2424,7 +2670,7 @@ export default function HomePage() {
   }, [getFundCodesSignature, scheduleSync]);
 
   useEffect(() => {
-    const keys = new Set(['funds', 'favorites', 'groups', 'collapsedCodes', 'refreshMs', 'holdings', 'pendingTrades']);
+    const keys = new Set(['funds', 'favorites', 'groups', 'refreshMs', 'holdings', 'pendingTrades']);
     const onStorage = (e) => {
       if (!e.key) return;
       if (!keys.has(e.key)) return;
@@ -2452,20 +2698,6 @@ export default function HomePage() {
       }
       storageHelper.setItem('favorites', JSON.stringify(Array.from(next)));
       if (next.size === 0) setCurrentTab('all');
-      return next;
-    });
-  };
-
-  const toggleCollapse = (code) => {
-    setCollapsedCodes(prev => {
-      const next = new Set(prev);
-      if (next.has(code)) {
-        next.delete(code);
-      } else {
-        next.add(code);
-      }
-      // 同步到本地存储
-      storageHelper.setItem('collapsedCodes', JSON.stringify(Array.from(next)));
       return next;
     });
   };
@@ -2570,11 +2802,6 @@ export default function HomePage() {
       if (Number.isFinite(savedMs) && savedMs >= 5000) {
         setRefreshMs(savedMs);
         setTempSeconds(Math.round(savedMs / 1000));
-      }
-      // 加载收起状态
-      const savedCollapsed = JSON.parse(localStorage.getItem('collapsedCodes') || '[]');
-      if (Array.isArray(savedCollapsed)) {
-        setCollapsedCodes(new Set(savedCollapsed));
       }
       // 加载自选状态
       const savedFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
@@ -3045,15 +3272,6 @@ export default function HomePage() {
     setGroups(nextGroups);
     storageHelper.setItem('groups', JSON.stringify(nextGroups));
 
-    // 同步删除展开收起状态
-    setCollapsedCodes(prev => {
-      if (!prev.has(removeCode)) return prev;
-      const nextSet = new Set(prev);
-      nextSet.delete(removeCode);
-      storageHelper.setItem('collapsedCodes', JSON.stringify(Array.from(nextSet)));
-      return nextSet;
-    });
-
     // 同步删除自选状态
     setFavorites(prev => {
       if (!prev.has(removeCode)) return prev;
@@ -3118,10 +3336,6 @@ export default function HomePage() {
       ? Array.from(new Set(payload.favorites.map(normalizeCode).filter((code) => uniqueFundCodes.includes(code)))).sort()
       : [];
 
-    const collapsedCodes = Array.isArray(payload.collapsedCodes)
-      ? Array.from(new Set(payload.collapsedCodes.map(normalizeCode).filter((code) => uniqueFundCodes.includes(code)))).sort()
-      : [];
-
     const groups = Array.isArray(payload.groups)
       ? payload.groups
           .map((group) => {
@@ -3183,7 +3397,6 @@ export default function HomePage() {
       funds: uniqueFundCodes,
       favorites,
       groups,
-      collapsedCodes,
       refreshMs: Number.isFinite(payload.refreshMs) ? payload.refreshMs : 30000,
       holdings,
       pendingTrades
@@ -3195,7 +3408,6 @@ export default function HomePage() {
       const funds = JSON.parse(localStorage.getItem('funds') || '[]');
       const favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
       const groups = JSON.parse(localStorage.getItem('groups') || '[]');
-      const collapsedCodes = JSON.parse(localStorage.getItem('collapsedCodes') || '[]');
       const fundCodes = new Set(
         Array.isArray(funds)
           ? funds.map((f) => f?.code).filter(Boolean)
@@ -3230,9 +3442,6 @@ export default function HomePage() {
       const cleanedFavorites = Array.isArray(favorites)
         ? favorites.filter((code) => fundCodes.has(code))
         : [];
-      const cleanedCollapsed = Array.isArray(collapsedCodes)
-        ? collapsedCodes.filter((code) => fundCodes.has(code))
-        : [];
       const cleanedGroups = Array.isArray(groups)
         ? groups.map((group) => ({
           ...group,
@@ -3248,7 +3457,6 @@ export default function HomePage() {
         funds,
         favorites: cleanedFavorites,
         groups: cleanedGroups,
-        collapsedCodes: cleanedCollapsed,
         refreshMs: parseInt(localStorage.getItem('refreshMs') || '30000', 10),
         holdings: cleanedHoldings,
         pendingTrades: cleanedPendingTrades,
@@ -3259,7 +3467,6 @@ export default function HomePage() {
         funds: [],
         favorites: [],
         groups: [],
-        collapsedCodes: [],
         refreshMs: 30000,
         holdings: {},
         pendingTrades: [],
@@ -3287,10 +3494,6 @@ export default function HomePage() {
       const nextGroups = Array.isArray(cloudData.groups) ? cloudData.groups : [];
       setGroups(nextGroups);
       storageHelper.setItem('groups', JSON.stringify(nextGroups));
-
-      const nextCollapsed = Array.isArray(cloudData.collapsedCodes) ? cloudData.collapsedCodes : [];
-      setCollapsedCodes(new Set(nextCollapsed));
-      storageHelper.setItem('collapsedCodes', JSON.stringify(nextCollapsed));
 
       const nextRefreshMs = Number.isFinite(cloudData.refreshMs) && cloudData.refreshMs >= 5000 ? cloudData.refreshMs : 30000;
       setRefreshMs(nextRefreshMs);
@@ -3413,7 +3616,6 @@ export default function HomePage() {
         funds: JSON.parse(localStorage.getItem('funds') || '[]'),
         favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
         groups: JSON.parse(localStorage.getItem('groups') || '[]'),
-        collapsedCodes: JSON.parse(localStorage.getItem('collapsedCodes') || '[]'),
         refreshMs: parseInt(localStorage.getItem('refreshMs') || '30000', 10),
         holdings: JSON.parse(localStorage.getItem('holdings') || '{}'),
         pendingTrades: JSON.parse(localStorage.getItem('pendingTrades') || '[]'),
@@ -3468,7 +3670,6 @@ export default function HomePage() {
         const currentFunds = JSON.parse(localStorage.getItem('funds') || '[]');
         const currentFavorites = JSON.parse(localStorage.getItem('favorites') || '[]');
         const currentGroups = JSON.parse(localStorage.getItem('groups') || '[]');
-        const currentCollapsed = JSON.parse(localStorage.getItem('collapsedCodes') || '[]');
         const currentPendingTrades = JSON.parse(localStorage.getItem('pendingTrades') || '[]');
 
         let mergedFunds = currentFunds;
@@ -3506,12 +3707,6 @@ export default function HomePage() {
           });
           setGroups(mergedGroups);
           storageHelper.setItem('groups', JSON.stringify(mergedGroups));
-        }
-
-        if (Array.isArray(data.collapsedCodes)) {
-          const mergedCollapsed = Array.from(new Set([...currentCollapsed, ...data.collapsedCodes]));
-          setCollapsedCodes(new Set(mergedCollapsed));
-          storageHelper.setItem('collapsedCodes', JSON.stringify(mergedCollapsed));
         }
 
         if (typeof data.refreshMs === 'number' && data.refreshMs >= 5000) {
@@ -4184,20 +4379,18 @@ export default function HomePage() {
                               }
                             }}
                             onClick={(e) => {
-                              // 阻止事件冒泡，避免触发全局的 click listener 导致立刻被收起
-                              // 只有在已经展开的情况下点击自身才需要阻止冒泡（或者根据需求调整）
-                              // 这里我们希望：点击任何地方都收起。
-                              // 如果点击的是当前行，且不是拖拽操作，上面的全局 listener 会处理收起。
-                              // 但为了防止点击行内容触发收起后又立即触发行的其他点击逻辑（如果有的话），
-                              // 可以在这里处理。不过当前需求是“点击其他区域收起”，
-                              // 实际上全局 listener 已经覆盖了“点击任何区域（包括其他行）收起”。
-                              // 唯一的问题是：点击当前行的“删除按钮”时，会先触发全局 click 导致收起，然后触发删除吗？
-                              // 删除按钮在底层，通常不会受影响，因为 React 事件和原生事件的顺序。
-                              // 但为了保险，删除按钮的 onClick 应该阻止冒泡。
+                              // 如果点击的是按钮或交互元素，不打开详情弹窗
+                              const target = e.target;
+                              const isButton = target.closest('button') || target.closest('.icon-button') || target.closest('.link-button');
 
-                              // 如果当前行已展开，点击行内容（非删除按钮）应该收起
+                              if (!isButton) {
+                                // 点击卡片空白区域打开详情弹窗
+                                setDetailModal({ open: true, fund: f });
+                              }
+
+                              // 处理移动端滑动收起逻辑
                               if (viewMode === 'list' && isMobile && swipedFundCode === f.code) {
-                                e.stopPropagation(); // 阻止冒泡，自己处理收起，避免触发全局再次处理
+                                e.stopPropagation();
                                 setSwipedFundCode(null);
                               }
                             }}
@@ -4554,58 +4747,6 @@ export default function HomePage() {
                                     基于 {Math.round(f.estPricedCoverage * 100)}% 持仓估算
                                   </div>
                                 )}
-                                <div
-                                  style={{ marginBottom: 8, cursor: 'pointer', userSelect: 'none' }}
-                                  className="title"
-                                  onClick={() => toggleCollapse(f.code)}
-                                >
-                                  <div className="row" style={{ width: '100%', flex: 1 }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                      <span>前10重仓股票</span>
-                                      <ChevronIcon
-                                        width="16"
-                                        height="16"
-                                        className="muted"
-                                        style={{
-                                          transform: collapsedCodes.has(f.code) ? 'rotate(-90deg)' : 'rotate(0deg)',
-                                          transition: 'transform 0.2s ease'
-                                        }}
-                                      />
-                                    </div>
-                                    <span className="muted">涨跌幅 / 占比</span>
-                                  </div>
-                                </div>
-                                <AnimatePresence>
-                                  {!collapsedCodes.has(f.code) && (
-                                    <motion.div
-                                      initial={{ height: 0, opacity: 0 }}
-                                      animate={{ height: 'auto', opacity: 1 }}
-                                      exit={{ height: 0, opacity: 0 }}
-                                      transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                      style={{ overflow: 'hidden' }}
-                                    >
-                                      {Array.isArray(f.holdings) && f.holdings.length ? (
-                                        <div className="list">
-                                          {f.holdings.map((h, idx) => (
-                                            <div className="item" key={idx}>
-                                              <span className="name">{h.name}</span>
-                                              <div className="values">
-                                                {typeof h.change === 'number' && (
-                                                  <span className={`badge ${h.change > 0 ? 'up' : h.change < 0 ? 'down' : ''}`} style={{ marginRight: 8 }}>
-                                                    {h.change > 0 ? '+' : ''}{h.change.toFixed(2)}%
-                                                  </span>
-                                                )}
-                                                <span className="weight">{h.weight}</span>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      ) : (
-                                        <div className="muted" style={{ padding: '8px 0' }}>暂无重仓数据</div>
-                                      )}
-                                    </motion.div>
-                                  )}
-                                </AnimatePresence>
                               </>
                             )}
                           </motion.div>
@@ -4857,6 +4998,15 @@ export default function HomePage() {
               }
               setCloudConfigModal({ open: false, userId: null });
             }}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {detailModal.open && (
+          <FundDetailModal
+            fund={detailModal.fund}
+            onClose={() => setDetailModal({ open: false, fund: null })}
           />
         )}
       </AnimatePresence>
