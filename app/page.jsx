@@ -2125,6 +2125,8 @@ export default function HomePage() {
   const [loginError, setLoginError] = useState('');
   const [loginSuccess, setLoginSuccess] = useState('');
   const [loginOtp, setLoginOtp] = useState('');
+  const [otpCountdown, setOtpCountdown] = useState(0); // OTP 发送倒计时（秒）
+  const [canSendOtp, setCanSendOtp] = useState(true); // 是否可以发送 OTP
 
   const userAvatar = useMemo(() => {
     if (!user?.id) return '';
@@ -2182,6 +2184,16 @@ export default function HomePage() {
       return () => window.removeEventListener('resize', checkMobile);
     }
   }, []);
+
+  // OTP 发送倒计时
+  useEffect(() => {
+    if (otpCountdown > 0) {
+      const timer = setTimeout(() => setOtpCountdown(otpCountdown - 1), 1000);
+      return () => clearTimeout(timer);
+    } else {
+      setCanSendOtp(otpCountdown === 0);
+    }
+  }, [otpCountdown]);
 
   // 检查更新
   const [hasUpdate, setHasUpdate] = useState(false);
@@ -2928,6 +2940,13 @@ export default function HomePage() {
     e.preventDefault();
     setLoginError('');
     setLoginSuccess('');
+
+    // 前端限流检查
+    if (!canSendOtp) {
+      setLoginError(`请等待 ${otpCountdown} 秒后再试`);
+      return;
+    }
+
     if (!isSupabaseConfigured) {
       showToast('未配置 Supabase，无法登录', 'error');
       return;
@@ -2953,6 +2972,9 @@ export default function HomePage() {
       });
       if (error) throw error;
       setLoginSuccess('验证码已发送，请查收邮箱输入验证码完成注册/登录');
+      // 启动 60 秒倒计时
+      setCanSendOtp(false);
+      setOtpCountdown(60);
     } catch (err) {
       if (err.message?.includes('rate limit')) {
         setLoginError('请求过于频繁，请稍后再试');
@@ -5190,6 +5212,8 @@ export default function HomePage() {
                     setLoginSuccess('');
                     setLoginEmail('');
                     setLoginOtp('');
+                    setOtpCountdown(0);
+                    setCanSendOtp(true);
                   }}
                   disabled={loginLoading}
                 >
@@ -5199,9 +5223,12 @@ export default function HomePage() {
                   className="button"
                   type={loginSuccess ? 'button' : 'submit'}
                   onClick={loginSuccess ? handleVerifyEmailOtp : undefined}
-                  disabled={loginLoading || (loginSuccess && !loginOtp)}
+                  disabled={loginLoading || (loginSuccess && !loginOtp) || (!canSendOtp && !loginSuccess)}
                 >
-                  {loginLoading ? '处理中...' : loginSuccess ? '确认验证码' : '发送邮箱验证码'}
+                  {loginLoading ? '处理中...' :
+                   loginSuccess ? '确认验证码' :
+                   canSendOtp ? '发送邮箱验证码' :
+                   `重新发送 (${otpCountdown}s)`}
                 </button>
               </div>
             </form>
