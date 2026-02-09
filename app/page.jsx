@@ -2111,7 +2111,7 @@ export default function HomePage() {
   const [editingGroup, setEditingGroup] = useState(null);
 
   // 排序状态
-  const [sortBy, setSortBy] = useState('default'); // default, name, yield, holding
+  const [sortBy, setSortBy] = useState('yield'); // default, name, yield, holding
   const [sortOrder, setSortOrder] = useState('desc'); // asc | desc
 
   // 视图模式
