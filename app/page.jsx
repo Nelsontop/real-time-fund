@@ -2051,7 +2051,10 @@ function FundDetailModal({ fund, onClose }) {
         {/* Top 10 Holdings */}
         {fund?.holdings && fund.holdings.length > 0 && (
           <div>
-            <div style={{ fontWeight: 600, fontSize: '16px', marginBottom: 12 }}>前10重仓股票</div>
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontWeight: 600, fontSize: '16px' }}>前10重仓股票</div>
+              <span className="muted" style={{ fontSize: '12px' }}>涨跌幅 / 占比</span>
+            </div>
             <div className="list">
               {fund.holdings.map((h, idx) => (
                 <div className="item" key={idx}>

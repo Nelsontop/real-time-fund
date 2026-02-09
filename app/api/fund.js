@@ -413,17 +413,32 @@ export const fetchFundHistoryNetValue = async (code, endDate, months) => {
   const startDate = start.format('YYYY-MM-DD');
   const endDateStr = end.format('YYYY-MM-DD');
 
-  // 东方财富历史净值API
-  const url = `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code=${code}&page=1&per=1000&sdate=${startDate}&edate=${endDateStr}`;
+  // 东方财富历史净值API - 分页获取所有数据
+  const allData = [];
+  let page = 1;
+  const perPage = 500; // 每页500条，减少单次请求压力
 
   try {
-    await loadScript(url);
-    if (window.apidata && window.apidata.content) {
+    while (true) {
+      const url = `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code=${code}&page=${page}&per=${perPage}&sdate=${startDate}&edate=${endDateStr}`;
+
+      await loadScript(url);
+
+      if (!window.apidata || !window.apidata.content) {
+        break;
+      }
+
       const content = window.apidata.content;
-      if (content.includes('暂无数据')) return [];
+      if (content.includes('暂无数据')) {
+        // 第一页就没数据，返回空
+        if (page === 1) return [];
+        // 其他页没数据了，说明已经获取完
+        break;
+      }
 
       const rows = content.split('<tr>');
-      const data = [];
+      let pageHasData = false;
+
       for (const row of rows) {
         const cells = row.match(/<td[^>]*>(.*?)<\/td>/g);
         if (cells && cells.length >= 4) {
@@ -433,14 +448,35 @@ export const fetchFundHistoryNetValue = async (code, endDate, months) => {
           if (navDate.isValid()) {
             const num = parseFloat(value);
             if (!isNaN(num) && num > 0) {
-              data.push({ date, value: num });
+              allData.push({ date, value: num });
+              pageHasData = true;
             }
           }
         }
       }
-      return data.sort((a, b) => dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1);
+
+      // 如果这一页没有任何数据，说明已经到末尾
+      if (!pageHasData) {
+        break;
+      }
+
+      // 如果获取的数据少于每页数量，说明已经是最后一页
+      if (rows.length <= 2) { // rows包含表头等，实际数据行会更少
+        break;
+      }
+
+      page++;
+
+      // 防止无限循环，最多获取20页（10000条数据，足够6个月使用）
+      if (page > 20) {
+        break;
+      }
+
+      // 添加小延迟避免请求过快
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
-    return [];
+
+    return allData.sort((a, b) => dayjs(a.date).isBefore(dayjs(b.date)) ? -1 : 1);
   } catch (e) {
     console.error('Fetch history error:', e);
     return [];
