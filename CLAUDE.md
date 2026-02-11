@@ -80,7 +80,7 @@ Node.js >= 20.9.0 (see package.json engines field). Docker uses Node 22.
 ### Core Application Structure
 
 - **Single Page App**: `app/page.jsx` (~5000 lines) - Contains all application logic, state management, and UI components
-  - **FundDetailModal**: Fund detail popup with historical charts and holdings
+  - **FundDetailModal**: Fund detail popup with historical charts (7d, 1m, 3m, 6m, 12m), holdings, and remove-from-group button
 - **Layout**: `app/layout.jsx` - Root layout with Google Analytics integration
 - **Styles**: `app/globals.css` - Glassmorphism design system with CSS custom properties
 - **Components**: `app/components/` - Reusable UI components (AnalyticsGate, Announcement)
@@ -103,7 +103,8 @@ The application uses four different CORS-bypassing techniques:
 3. **Historical Net Value** (东方财富): Script tag injection with pagination
    - URL: `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz`
    - Fetches data in pages (500 items per page, max 20 pages)
-   - Returns daily net values for specified time periods (1/3/6 months)
+   - Returns daily net values for specified time periods (7 days, 1/3/6/12 months)
+   - Supports both day and month units for flexible time range queries
 
 4. **Stock Quotes** (腾讯财经): Similar script injection approach
 
@@ -156,6 +157,7 @@ Key functions:
 ### Chart Components (recharts)
 
 **FundDetailModal** uses recharts for historical net value visualization:
+- **Time Range Options**: 7 days, 1 month, 3 months, 6 months, 1 year
 - `LineChart`: Main chart component
 - `Line`: Data line with no dots, active dot on hover
 - `XAxis`/`YAxis`: Axis with custom styling
@@ -179,6 +181,8 @@ The app is configured for static export (`next.config.js`):
 5. **Mobile Interactions**: Swipe-to-delete on mobile, click-to-delete on desktop
 6. **Modal Pattern**: Click overlay to close, stopPropagation on modal content
 7. **Data Merging**: Import uses merge strategy (not replace) to preserve existing data
+8. **List View Columns**: Order is - Name, Net Value, Today Change, Yesterday Change, Time, Today Profit, Holding Amount, Holding Profit
+9. **Group Management**: Funds can be removed from groups via detail modal button (only shows when viewing a group)
 
 ## Backup & Data Persistence
 
