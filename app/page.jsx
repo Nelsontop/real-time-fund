@@ -4358,7 +4358,7 @@ export default function HomePage() {
                         <motion.div
                           layout="position"
                           key={f.code}
-                          className={viewMode === 'card' ? 'col-6' : 'table-row-wrapper'}
+                          className={viewMode === 'card' ? 'fund-card' : 'table-row-wrapper'}
                           initial={{ opacity: 0, scale: 0.95 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.95 }}

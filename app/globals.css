@@ -27,9 +27,17 @@ body {
 }
 
 .container {
-  max-width: 1120px;
+  max-width: 1800px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 16px 24px 24px;
+}
+
+/* 在大屏幕上增加最大宽度 */
+@media (min-width: 1920px) {
+  .container {
+    max-width: 2200px;
+    padding: 16px 32px 24px;
+  }
 }
 
 .glass {
@@ -88,6 +96,29 @@ body {
   .col-4,
   .col-3 {
     grid-column: span 12;
+  }
+}
+
+/* 响应式基金卡片布局 */
+.fund-card {
+  grid-column: span 3; /* 超大屏幕：4列 */
+}
+
+@media (max-width: 1440px) {
+  .fund-card {
+    grid-column: span 4; /* 大屏幕：3列 */
+  }
+}
+
+@media (max-width: 1024px) {
+  .fund-card {
+    grid-column: span 6; /* 中屏幕：2列 */
+  }
+}
+
+@media (max-width: 640px) {
+  .fund-card {
+    grid-column: span 12; /* 小屏幕：1列 */
   }
 }
 
