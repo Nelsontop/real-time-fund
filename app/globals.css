@@ -508,7 +508,7 @@ input[type="number"] {
 
 .table-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 60px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 80px;
   align-items: center;
   gap: 12px;
   padding: 12px 24px !important;
@@ -526,7 +526,7 @@ input[type="number"] {
 
 .table-header-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 60px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1.2fr 1.2fr 1.2fr 80px;
   gap: 12px;
   padding: 16px 24px;
   background: rgba(255, 255, 255, 0.05);
@@ -543,6 +543,7 @@ input[type="number"] {
 .table-cell {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
 
 .text-right {
@@ -557,6 +558,10 @@ input[type="number"] {
 
 .name-cell {
   gap: 8px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  flex: 1;
 }
 
 .title-text {
