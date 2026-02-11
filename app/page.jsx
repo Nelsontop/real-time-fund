@@ -2699,7 +2699,6 @@ export default function HomePage() {
         if (key === 'funds') {
           const prevSig = getFundCodesSignature(prevValue);
           const nextSig = getFundCodesSignature(nextValue);
-          debugger
           if (prevSig === nextSig) return;
         }
         if (!skipSyncRef.current) {
@@ -3606,11 +3605,21 @@ export default function HomePage() {
         .maybeSingle();
       if (error) throw error;
       if (!data?.id) {
+        // 首次登录，云端无数据，自动同步本地数据到云端
+        const payload = collectLocalPayload();
+        const now = nowInTz().toISOString();
         const { error: insertError } = await supabase
           .from('user_configs')
-          .insert({ user_id: userId });
+          .insert({
+            user_id: userId,
+            data: payload,
+            updated_at: now
+          });
         if (insertError) throw insertError;
-        setCloudConfigModal({ open: true, userId, type: 'empty' });
+        storageHelper.setItem('localUpdatedAt', now);
+        const payloadComparable = getComparablePayload(payload);
+        lastSyncedRef.current = payloadComparable;
+        showToast('已自动同步本地配置到云端', 'success');
         return;
       }
       if (data?.data && typeof data.data === 'object' && Object.keys(data.data).length > 0) {
@@ -3628,7 +3637,8 @@ export default function HomePage() {
         await applyCloudConfig(data.data, data.updated_at);
         return;
       }
-      setCloudConfigModal({ open: true, userId, type: 'empty' });
+      // 云端记录存在但数据为空，同步本地数据
+      await syncUserConfig(userId, false);
     } catch (e) {
       console.error('获取云端配置失败', e);
     }
