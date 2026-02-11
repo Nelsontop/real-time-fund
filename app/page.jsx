@@ -4287,18 +4287,20 @@ export default function HomePage() {
                     >
                       全部 ({funds.length})
                     </motion.button>
-                    <motion.button
-                      layout
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      key="fav"
-                      className={`tab ${currentTab === 'fav' ? 'active' : ''}`}
-                      onClick={() => setCurrentTab('fav')}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
-                    >
-                      自选 ({favorites.size})
-                    </motion.button>
+                    {favorites.size > 0 && (
+                      <motion.button
+                        layout
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        key="fav"
+                        className={`tab ${currentTab === 'fav' ? 'active' : ''}`}
+                        onClick={() => setCurrentTab('fav')}
+                        transition={{ type: 'spring', stiffness: 500, damping: 30, mass: 1 }}
+                      >
+                        自选 ({favorites.size})
+                      </motion.button>
+                    )}
                     {groups.map(g => (
                       <motion.button
                         layout
