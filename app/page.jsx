@@ -5378,13 +5378,6 @@ export default function HomePage() {
   );
 }
 
-/**
- * 发送企业微信推送
- * @param {Array} changedFunds - 净值发生变化的基金列表
- * @returns {Promise<void>}
- */
-async function sendWeChatPush(changedFunds) {
-  if (\!changedFunds || changedFunds.length === 0) return;
 
   try {
     // 构建推送消息
