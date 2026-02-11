@@ -3667,12 +3667,20 @@ export default function HomePage() {
   const syncUserConfig = async (userId, showTip = true) => {
     if (!userId) {
       showToast(`userId 不存在，请重新登录`, 'error');
+      console.error('[syncUserConfig] userId is null or undefined');
       return;
     }
+
+    console.log('[syncUserConfig] Starting sync for userId:', userId);
+
     try {
       setIsSyncing(true);
       const payload = collectLocalPayload();
       const now = nowInTz().toISOString();
+
+      console.log('[syncUserConfig] Payload size:', JSON.stringify(payload).length, 'bytes');
+      console.log('[syncUserConfig] Upserting to Supabase...');
+
       const { data: upsertData, error: updateError } = await supabase
         .from('user_configs')
         .upsert(
@@ -3685,20 +3693,26 @@ export default function HomePage() {
         )
         .select();
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        console.error('[syncUserConfig] Supabase upsert error:', updateError);
+        throw updateError;
+      }
+
+      console.log('[syncUserConfig] Upsert result:', upsertData);
+
       if (!upsertData || upsertData.length === 0) {
         throw new Error('同步失败：未写入任何数据，请检查账号状态或重新登录');
       }
 
       storageHelper.setItem('localUpdatedAt', now);
+      console.log('[syncUserConfig] Sync completed successfully');
 
       if (showTip) {
         setSuccessModal({ open: true, message: '已同步云端配置' });
       }
     } catch (e) {
-      console.error('同步云端配置异常', e);
-      // 临时关闭同步异常提示
-      // showToast(`同步云端配置异常:${e}`, 'error');
+      console.error('[syncUserConfig] Sync failed with error:', e);
+      showToast(`同步失败：${e.message || '未知错误'}`, 'error');
     } finally {
       setIsSyncing(false);
     }
@@ -3708,6 +3722,9 @@ export default function HomePage() {
     const userId = cloudConfigModal.userId;
     const cloudData = cloudConfigModal.cloudData;
 
+    console.log('[handleSyncLocalConfig] Called with userId:', userId);
+    console.log('[handleSyncLocalConfig] Cloud data exists:', !!cloudData);
+
     setCloudConfigModal({ open: false, userId: null, cloudData: null });
 
     // 标记为手动同步，防止自动刷新时重复触发
@@ -3715,16 +3732,24 @@ export default function HomePage() {
 
     try {
       // 同步本地数据到云端
+      console.log('[handleSyncLocalConfig] Calling syncUserConfig...');
       await syncUserConfig(userId, false);
+      console.log('[handleSyncLocalConfig] syncUserConfig completed');
 
       // 同步成功后，更新 lastSyncedRef 以避免后续检测到"冲突"
       // 这很重要：因为 scheduleSync 依赖 lastSyncedRef 来判断是否需要同步
       const payload = collectLocalPayload();
-      lastSyncedRef.current = getComparablePayload(payload);
+      const comparable = getComparablePayload(payload);
+      console.log('[handleSyncLocalConfig] Updated lastSyncedRef:', comparable);
+      lastSyncedRef.current = comparable;
+    } catch (e) {
+      console.error('[handleSyncLocalConfig] Error:', e);
+      throw e;
     } finally {
       // 延迟恢复自动同步，确保云端更新已传播
       // 同时避免同步过程中的其他变化触发新的同步
       setTimeout(() => {
+        console.log('[handleSyncLocalConfig] Restoring skipSyncRef to false');
         skipSyncRef.current = false;
       }, 3000);
     }
