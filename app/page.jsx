@@ -3067,13 +3067,9 @@ export default function HomePage() {
         setLoginSuccess('');
         setLoginError('');
 
-        // 显示登录成功提示
-        showToast('登录成功，正在同步云端数据...', 'success');
-
         // 异步获取云端配置（不阻塞登录流程）
         fetchCloudConfig(data.user.id).catch(err => {
           console.error('获取云端配置失败', err);
-          showToast('登录成功，云端数据加载失败', 'error');
         });
       }
     } catch (err) {
@@ -3651,13 +3647,12 @@ export default function HomePage() {
           return;
         }
 
+        // 数据一致，静默加载配置，不显示提示
         await applyCloudConfig(data.data, data.updated_at);
-        showToast('登录成功，已从云端加载配置', 'success');
         return;
       }
-      // 云端记录存在但数据为空，同步本地数据
+      // 云端记录存在但数据为空，同步本地数据（静默，不显示提示）
       await syncUserConfig(userId, false);
-      showToast('登录成功，已同步本地数据到云端', 'success');
     } catch (e) {
       console.error('获取云端配置失败', e);
       showToast('云端配置加载失败', 'error');
