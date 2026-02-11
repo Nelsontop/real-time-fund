@@ -2140,6 +2140,10 @@ export default function HomePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSeconds, setTempSeconds] = useState(30);
 
+  // 企业微信推送配置
+  const [weChatWebhookUrl, setWeChatWebhookUrl] = useState('');
+  const [weChatPushEnabled, setWeChatPushEnabled] = useState(false);
+
   // 全局刷新状态
   const [refreshing, setRefreshing] = useState(false);
 
@@ -2882,6 +2886,13 @@ export default function HomePage() {
       if (savedHoldings && typeof savedHoldings === 'object') {
         setHoldings(savedHoldings);
       }
+      // 加载企业微信推送配置
+      const savedWeChatWebhookUrl = localStorage.getItem('weChatWebhookUrl') || '';
+      const savedWeChatPushEnabled = localStorage.getItem('weChatPushEnabled') === 'true';
+      if (savedWeChatWebhookUrl) {
+        setWeChatWebhookUrl(savedWeChatWebhookUrl);
+      }
+      setWeChatPushEnabled(savedWeChatPushEnabled);
     } catch { }
   }, []);
 
@@ -3391,6 +3402,11 @@ export default function HomePage() {
     const ms = Math.max(10, Number(tempSeconds)) * 1000;
     setRefreshMs(ms);
     storageHelper.setItem('refreshMs', String(ms));
+
+    // 保存企业微信推送配置
+    localStorage.setItem('weChatWebhookUrl', weChatWebhookUrl);
+    localStorage.setItem('weChatPushEnabled', weChatPushEnabled);
+
     setSettingsOpen(false);
   };
 
@@ -5059,6 +5075,36 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
+
+              {/* 企业微信推送配置 */}
+              <div className="muted" style={{ marginBottom: 8, fontSize: '0.85rem', fontWeight: 600 }}>
+                企业微信推送
+              </div>
+              <div style={{ marginBottom: 12 }}>
+                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text"
+                    className="input"
+                    placeholder="WeChat Webhook URL"
+                    value={weChatWebhookUrl}
+                    onChange={(e) => setWeChatWebhookUrl(e.target.value)}
+                    style={{ flex: 1, padding: '8px 12px', fontSize: '14px' }}
+                  />
+                  <label className="row" style={{ gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={weChatPushEnabled}
+                      onChange={(e) => {
+                        setWeChatPushEnabled(e.target.checked);
+                        // 保存启用状态
+                        localStorage.setItem('weChatPushEnabled', e.target.checked);
+                      }}
+                      style={{ width: 'auto', cursor: 'pointer' }}
+                    />
+                    <span style={{ marginLeft: 4, userSelect: 'none', fontSize: '14px' }}>启用推送</span>
+                  </label>
+                </div>
+              </div>
               <input
                 className="input"
                 type="number"
@@ -5331,3 +5377,49 @@ export default function HomePage() {
     </div>
   );
 }
+
+/**
+ * 发送企业微信推送
+ * @param {Array} changedFunds - 净值发生变化的基金列表
+ * @returns {Promise<void>}
+ */
+async function sendWeChatPush(changedFunds) {
+  if (\!changedFunds || changedFunds.length === 0) return;
+
+  try {
+    // 构建推送消息
+    const changes = changedFunds.map(f => ({
+      fund: f.name,
+      code: f.code,
+      change: f.change
+    }));
+
+    const message = {
+      msgtype: 0,  // 文本消息
+      content: JSON.stringify({
+        title: \"基估宝净值变动提醒\",
+        time: new Date().toLocaleString(\"zh-CN\", { hour12: false }),
+        changes: changes
+      })
+    };
+
+    // 发送到企业微信 wehbook
+    const response = await fetch(weChatWebhookUrl, {
+      method: \"POST\",
+      headers: {
+        \"Content-Type\": \"application/json\"
+      },
+      body: JSON.stringify(message)
+    });
+
+    if (\!response.ok) {
+      throw new Error(`推送失败: ${response.status}`);
+    }
+
+    const result = await response.json();
+    console.log(\"企业微信推送成功:\", result);
+  } catch (error) {
+    console.error(\"企业微信推送失败:\", error);
+  }
+}
+
