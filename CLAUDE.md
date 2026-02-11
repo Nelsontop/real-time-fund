@@ -69,7 +69,33 @@ The project includes automated testing tools:
 - **`scripts/test-backup.sh`**: Interactive testing script for export/import functionality
 - **`scripts/backup-example.json`**: Example backup file for reference
 
-Run tests before committing changes to backup-related functionality.
+### E2E Testing (Playwright)
+
+End-to-end tests are located in `tests/e2e/`:
+- Authentication flow tests (login, OTP verification, cloud sync)
+- Test specs use TypeScript and Playwright framework
+
+```bash
+# Run E2E tests (requires running app)
+npx playwright test                          # Run all tests
+npx playwright test --ui                     # Run with UI
+npx playwright test --project=chromium        # Run on specific browser
+npx playwright test tests/e2e/auth/login.spec.ts  # Run single file
+
+# View test reports
+npx playwright show-report                   # Open HTML report
+
+# Run tests in Docker (recommended approach)
+docker compose up -d --build
+npx playwright test
+docker compose down
+```
+
+Playwright configuration:
+- Base URL: `http://localhost:3000` (configurable via `BASE_URL` env var)
+- Reports: HTML + JSON output to `playwright-report/` and `playwright-results.json`
+- Workers: 1 (to avoid race conditions)
+- Screenshots/videos: Captured on failure
 
 ## Node Version Requirement
 
