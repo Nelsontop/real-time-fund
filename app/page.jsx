@@ -3706,8 +3706,28 @@ export default function HomePage() {
 
   const handleSyncLocalConfig = async () => {
     const userId = cloudConfigModal.userId;
-    setCloudConfigModal({ open: false, userId: null });
-    await syncUserConfig(userId);
+    const cloudData = cloudConfigModal.cloudData;
+
+    setCloudConfigModal({ open: false, userId: null, cloudData: null });
+
+    // 标记为手动同步，防止自动刷新时重复触发
+    skipSyncRef.current = true;
+
+    try {
+      // 同步本地数据到云端
+      await syncUserConfig(userId, false);
+
+      // 同步成功后，更新 lastSyncedRef 以避免后续检测到"冲突"
+      // 这很重要：因为 scheduleSync 依赖 lastSyncedRef 来判断是否需要同步
+      const payload = collectLocalPayload();
+      lastSyncedRef.current = getComparablePayload(payload);
+    } finally {
+      // 延迟恢复自动同步，确保云端更新已传播
+      // 同时避免同步过程中的其他变化触发新的同步
+      setTimeout(() => {
+        skipSyncRef.current = false;
+      }, 3000);
+    }
   };
 
   const exportLocalData = async () => {
@@ -4963,9 +4983,9 @@ export default function HomePage() {
             onConfirm={handleSyncLocalConfig}
             onCancel={() => {
               if (cloudConfigModal.type === 'conflict' && cloudConfigModal.cloudData) {
-                applyCloudConfig(cloudConfigModal.cloudData);
+                applyCloudConfig(cloudConfigModal.cloudData, cloudConfigModal.updated_at);
               }
-              setCloudConfigModal({ open: false, userId: null });
+              setCloudConfigModal({ open: false, userId: null, cloudData: null });
             }}
           />
         )}
