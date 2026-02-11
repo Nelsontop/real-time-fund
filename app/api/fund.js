@@ -405,11 +405,11 @@ export const submitFeedback = async (formData) => {
   return response.json();
 };
 
-export const fetchFundHistoryNetValue = async (code, endDate, months) => {
+export const fetchFundHistoryNetValue = async (code, endDate, monthsOrDays, unit = 'month') => {
   if (typeof window === 'undefined') return [];
   const today = nowInTz();
   const end = endDate ? toTz(endDate) : today;
-  const start = end.subtract(months, 'month');
+  const start = unit === 'day' ? end.subtract(monthsOrDays, 'day') : end.subtract(monthsOrDays, 'month');
   const startDate = start.format('YYYY-MM-DD');
   const endDateStr = end.format('YYYY-MM-DD');
 

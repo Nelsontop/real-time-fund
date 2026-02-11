@@ -1833,37 +1833,41 @@ function GroupSummary({ funds, holdings, groupName, getProfit }) {
   );
 }
 
-function FundDetailModal({ fund, onClose, onDelete, hasHolding }) {
-  const [timeRange, setTimeRange] = useState(1); // 1, 3, 6 months
-  const [historyData, setHistoryData] = useState({ 1: [], 3: [], 6: [] });
-  const [loading, setLoading] = useState({ 1: false, 3: false, 6: false });
+function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRemoveFromGroup }) {
+  const [timeRange, setTimeRange] = useState('1m'); // 7d, 1m, 3m, 6m, 12m
+  const [historyData, setHistoryData] = useState({ '7d': [], '1m': [], '3m': [], '6m': [], '12m': [] });
+  const [loading, setLoading] = useState({ '7d': false, '1m': false, '3m': false, '6m': false, '12m': false });
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!fund?.code) return;
 
     const fetchAllHistory = async () => {
-      setLoading({ 1: true, 3: true, 6: true });
+      setLoading({ '7d': true, '1m': true, '3m': true, '6m': true, '12m': true });
       setError(null);
 
       try {
         const today = nowInTz();
-        const [data1, data3, data6] = await Promise.all([
-          fetchFundHistoryNetValue(fund.code, today, 1),
-          fetchFundHistoryNetValue(fund.code, today, 3),
-          fetchFundHistoryNetValue(fund.code, today, 6),
+        const [data7d, data1m, data3m, data6m, data12m] = await Promise.all([
+          fetchFundHistoryNetValue(fund.code, today, 7, 'day'),
+          fetchFundHistoryNetValue(fund.code, today, 1, 'month'),
+          fetchFundHistoryNetValue(fund.code, today, 3, 'month'),
+          fetchFundHistoryNetValue(fund.code, today, 6, 'month'),
+          fetchFundHistoryNetValue(fund.code, today, 12, 'month'),
         ]);
 
         setHistoryData({
-          1: data1,
-          3: data3,
-          6: data6,
+          '7d': data7d,
+          '1m': data1m,
+          '3m': data3m,
+          '6m': data6m,
+          '12m': data12m,
         });
       } catch (err) {
         setError('加载历史数据失败');
         console.error(err);
       } finally {
-        setLoading({ 1: false, 3: false, 6: false });
+        setLoading({ '7d': false, '1m': false, '3m': false, '6m': false, '12m': false });
       }
     };
 
@@ -1968,15 +1972,21 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding }) {
             <div style={{ fontWeight: 600, fontSize: '16px' }}>历史净值走势</div>
             <div className="tabs-container" style={{ background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 8 }}>
               <div className="row" style={{ gap: 0 }}>
-                {[1, 3, 6].map(months => (
+                {[
+                  { key: '7d', label: '近7天' },
+                  { key: '1m', label: '1月' },
+                  { key: '3m', label: '3月' },
+                  { key: '6m', label: '6月' },
+                  { key: '12m', label: '1年' },
+                ].map(range => (
                   <button
-                    key={months}
+                    key={range.key}
                     type="button"
-                    className={`tab ${timeRange === months ? 'active' : ''}`}
-                    onClick={() => setTimeRange(months)}
+                    className={`tab ${timeRange === range.key ? 'active' : ''}`}
+                    onClick={() => setTimeRange(range.key)}
                     style={{ padding: '6px 12px', fontSize: '12px', borderRadius: 6 }}
                   >
-                    {months}月
+                    {range.label}
                   </button>
                 ))}
               </div>
@@ -2079,7 +2089,19 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding }) {
 
         {/* 操作按钮区域 */}
         <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
-          <div className="row" style={{ justifyContent: 'center', gap: 12 }}>
+          <div className="row" style={{ justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+            {isInGroup && (
+              <button
+                className="button secondary"
+                onClick={() => {
+                  onRemoveFromGroup();
+                  onClose();
+                }}
+                style={{ flex: 1, maxWidth: '200px' }}
+              >
+                📤 移出分组
+              </button>
+            )}
             <button
               className="button danger"
               onClick={() => {
@@ -4371,9 +4393,9 @@ export default function HomePage() {
                         <div className="table-header-cell text-right">今日涨跌</div>
                         <div className="table-header-cell text-right">昨日涨跌幅</div>
                         <div className="table-header-cell text-right">估值时间</div>
+                        <div className="table-header-cell text-right">当日盈亏</div>
                         <div className="table-header-cell text-right">持仓金额</div>
                         <div className="table-header-cell text-right">持有收益</div>
-                        <div className="table-header-cell text-right">当日盈亏</div>
                       </div>
                     )}
                     <AnimatePresence mode="popLayout">
@@ -4507,6 +4529,25 @@ export default function HomePage() {
                                 <div className="table-cell text-right time-cell">
                                   <span className="muted" style={{ fontSize: '12px' }}>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</span>
                                 </div>
+                                {(() => {
+                                  const holding = holdings[f.code];
+                                  const profit = getHoldingProfit(f, holding);
+                                  const profitValue = profit ? profit.profitToday : null;
+                                  const hasProfit = profitValue !== null;
+
+                                  return (
+                                    <div className="table-cell text-right profit-cell">
+                                      <span
+                                        className={hasProfit ? (profitValue > 0 ? 'up' : profitValue < 0 ? 'down' : '') : 'muted'}
+                                        style={{ fontWeight: 700 }}
+                                      >
+                                        {hasProfit
+                                          ? `${profitValue > 0 ? '+' : profitValue < 0 ? '-' : ''}¥${Math.abs(profitValue).toFixed(2)}`
+                                          : ''}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
                                 {!isMobile && (() => {
                                   const holding = holdings[f.code];
                                   const profit = getHoldingProfit(f, holding);
@@ -4568,25 +4609,6 @@ export default function HomePage() {
                                       style={{ cursor: hasTotal ? 'pointer' : 'default' }}
                                     >
                                       <span className={cls} style={{ fontWeight: 700 }}>{formatted}</span>
-                                    </div>
-                                  );
-                                })()}
-                                {(() => {
-                                  const holding = holdings[f.code];
-                                  const profit = getHoldingProfit(f, holding);
-                                  const profitValue = profit ? profit.profitToday : null;
-                                  const hasProfit = profitValue !== null;
-
-                                  return (
-                                    <div className="table-cell text-right profit-cell">
-                                      <span
-                                        className={hasProfit ? (profitValue > 0 ? 'up' : profitValue < 0 ? 'down' : '') : 'muted'}
-                                        style={{ fontWeight: 700 }}
-                                      >
-                                        {hasProfit
-                                          ? `${profitValue > 0 ? '+' : profitValue < 0 ? '-' : ''}¥${Math.abs(profitValue).toFixed(2)}`
-                                          : ''}
-                                      </span>
                                     </div>
                                   );
                                 })()}
@@ -4926,6 +4948,8 @@ export default function HomePage() {
             onClose={() => setDetailModal({ open: false, fund: null })}
             onDelete={removeFund}
             hasHolding={!!holdings[detailModal.fund?.code]}
+            isInGroup={currentTab !== 'all' && currentTab !== 'fav'}
+            onRemoveFromGroup={() => removeFundFromCurrentGroup(detailModal.fund?.code)}
           />
         )}
       </AnimatePresence>
