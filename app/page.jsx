@@ -1833,7 +1833,7 @@ function GroupSummary({ funds, holdings, groupName, getProfit }) {
   );
 }
 
-function FundDetailModal({ fund, onClose }) {
+function FundDetailModal({ fund, onClose, onDelete, hasHolding }) {
   const [timeRange, setTimeRange] = useState(1); // 1, 3, 6 months
   const [historyData, setHistoryData] = useState({ 1: [], 3: [], 6: [] });
   const [loading, setLoading] = useState({ 1: false, 3: false, 6: false });
@@ -2076,6 +2076,30 @@ function FundDetailModal({ fund, onClose }) {
             </div>
           </div>
         )}
+
+        {/* 操作按钮区域 */}
+        <div style={{ marginTop: 24, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+          <div className="row" style={{ justifyContent: 'center', gap: 12 }}>
+            <button
+              className="button danger"
+              onClick={() => {
+                if (hasHolding) {
+                  // 如果有持仓，提示确认
+                  if (confirm(`基金 "${fund.name}" 存在持仓记录。删除后将移除该基金及其持仓数据，是否继续？`)) {
+                    onDelete(fund);
+                    onClose();
+                  }
+                } else {
+                  onDelete(fund);
+                  onClose();
+                }
+              }}
+              style={{ flex: 1, maxWidth: '200px' }}
+            >
+              🗑️ 删除基金
+            </button>
+          </div>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -4350,7 +4374,6 @@ export default function HomePage() {
                         <div className="table-header-cell text-right">持仓金额</div>
                         <div className="table-header-cell text-right">当日盈亏</div>
                         <div className="table-header-cell text-right">持有收益</div>
-                        <div className="table-header-cell text-center">操作</div>
                       </div>
                     )}
                     <AnimatePresence mode="popLayout">
@@ -4567,32 +4590,6 @@ export default function HomePage() {
                                     </div>
                                   );
                                 })()}
-                                <div className="table-cell text-center action-cell" style={{ gap: 4 }}>
-                                  {currentTab !== 'all' && currentTab !== 'fav' ? (
-                                    <button
-                                      className="icon-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeFundFromCurrentGroup(f.code);
-                                      }}
-                                      title="从分组移除"
-                                      disabled={refreshing}
-                                      style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-                                    >
-                                      <ExitIcon width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
-                                    </button>
-                                  ) : (
-                                    <button
-                                      className="icon-button danger"
-                                      onClick={() => !refreshing && requestRemoveFund(f)}
-                                      title="删除"
-                                      disabled={refreshing}
-                                      style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-                                    >
-                                      <TrashIcon width="14" height="14" />
-                                    </button>
-                                  )}
-                                </div>
                               </>
                             ) : (
                               <>
@@ -4624,30 +4621,6 @@ export default function HomePage() {
                                       <span>{f.noValuation ? '净值日期' : '估值时间'}</span>
                                       <strong>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</strong>
                                     </div>
-                                    {currentTab !== 'all' && currentTab !== 'fav' ? (
-                                      <button
-                                        className="icon-button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          removeFundFromCurrentGroup(f.code);
-                                        }}
-                                        title="从分组移除"
-                                        disabled={refreshing}
-                                        style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-                                      >
-                                        <ExitIcon width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
-                                      </button>
-                                    ) : (
-                                      <button
-                                        className="icon-button danger"
-                                        onClick={() => !refreshing && requestRemoveFund(f)}
-                                        title="删除"
-                                        disabled={refreshing}
-                                        style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-                                      >
-                                        <TrashIcon width="14" height="14" />
-                                      </button>
-                                    )}
                                   </div>
                                 </div>
 
@@ -4951,6 +4924,8 @@ export default function HomePage() {
           <FundDetailModal
             fund={detailModal.fund}
             onClose={() => setDetailModal({ open: false, fund: null })}
+            onDelete={removeFund}
+            hasHolding={!!holdings[detailModal.fund?.code]}
           />
         )}
       </AnimatePresence>
