@@ -4372,8 +4372,8 @@ export default function HomePage() {
                         <div className="table-header-cell text-right">昨日涨跌幅</div>
                         <div className="table-header-cell text-right">估值时间</div>
                         <div className="table-header-cell text-right">持仓金额</div>
-                        <div className="table-header-cell text-right">当日盈亏</div>
                         <div className="table-header-cell text-right">持有收益</div>
+                        <div className="table-header-cell text-right">当日盈亏</div>
                       </div>
                     )}
                     <AnimatePresence mode="popLayout">
@@ -4542,25 +4542,6 @@ export default function HomePage() {
                                     </div>
                                   );
                                 })()}
-                                {(() => {
-                                  const holding = holdings[f.code];
-                                  const profit = getHoldingProfit(f, holding);
-                                  const profitValue = profit ? profit.profitToday : null;
-                                  const hasProfit = profitValue !== null;
-
-                                  return (
-                                    <div className="table-cell text-right profit-cell">
-                                      <span
-                                        className={hasProfit ? (profitValue > 0 ? 'up' : profitValue < 0 ? 'down' : '') : 'muted'}
-                                        style={{ fontWeight: 700 }}
-                                      >
-                                        {hasProfit
-                                          ? `${profitValue > 0 ? '+' : profitValue < 0 ? '-' : ''}¥${Math.abs(profitValue).toFixed(2)}`
-                                          : ''}
-                                      </span>
-                                    </div>
-                                  );
-                                })()}
                                 {!isMobile && (() => {
                                   const holding = holdings[f.code];
                                   const profit = getHoldingProfit(f, holding);
@@ -4587,6 +4568,25 @@ export default function HomePage() {
                                       style={{ cursor: hasTotal ? 'pointer' : 'default' }}
                                     >
                                       <span className={cls} style={{ fontWeight: 700 }}>{formatted}</span>
+                                    </div>
+                                  );
+                                })()}
+                                {(() => {
+                                  const holding = holdings[f.code];
+                                  const profit = getHoldingProfit(f, holding);
+                                  const profitValue = profit ? profit.profitToday : null;
+                                  const hasProfit = profitValue !== null;
+
+                                  return (
+                                    <div className="table-cell text-right profit-cell">
+                                      <span
+                                        className={hasProfit ? (profitValue > 0 ? 'up' : profitValue < 0 ? 'down' : '') : 'muted'}
+                                        style={{ fontWeight: 700 }}
+                                      >
+                                        {hasProfit
+                                          ? `${profitValue > 0 ? '+' : profitValue < 0 ? '-' : ''}¥${Math.abs(profitValue).toFixed(2)}`
+                                          : ''}
+                                      </span>
                                     </div>
                                   );
                                 })()}
