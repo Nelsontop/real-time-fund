@@ -1970,7 +1970,7 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
         <div style={{ marginBottom: 24 }}>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: '16px' }}>历史净值走势</div>
-            <div className="tabs-container" style={{ background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 8 }}>
+            <div className="tabs-container time-range-tabs" style={{ background: 'rgba(255,255,255,0.05)', padding: 4, borderRadius: 8 }}>
               <div className="row" style={{ gap: 0 }}>
                 {[
                   { key: '7d', label: '近7天' },
@@ -4540,7 +4540,7 @@ export default function HomePage() {
                                     </div>
                                   );
                                 })()}
-                                <div className="table-cell text-right change-cell">
+                                <div className="table-cell text-right change-cell change-today-cell">
                                   {/* 今日涨跌 - 仅在有估值数据时显示 */}
                                   {f.noValuation ? (
                                     <span style={{ fontWeight: 700 }}>—</span>
@@ -4550,7 +4550,7 @@ export default function HomePage() {
                                     </span>
                                   )}
                                 </div>
-                                <div className="table-cell text-right change-cell">
+                                <div className="table-cell text-right change-cell change-yesterday-cell">
                                   {/* 昨日涨跌幅 - 始终显示 */}
                                   <span className={f.zzl > 0 ? 'up' : f.zzl < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
                                     {f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'}

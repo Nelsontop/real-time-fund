@@ -607,11 +607,11 @@ input[type="number"] {
   }
 
   .table-row {
-    grid-template-columns: 1fr 80px 100px;
+    grid-template-columns: 1fr auto auto 1fr;
     grid-template-areas:
-      "name value change"
-      "name time profit";
-    gap: 4px 12px;
+      "name value yesterday-change today-change"
+      "name time profit profit";
+    gap: 4px 8px;
     padding: 12px !important;
   }
 
@@ -623,8 +623,19 @@ input[type="number"] {
     grid-area: value;
   }
 
+  .change-today-cell {
+    grid-area: today-change;
+    text-align: right;
+  }
+
+  .change-yesterday-cell {
+    grid-area: yesterday-change;
+    text-align: right;
+  }
+
   .change-cell {
-    grid-area: change;
+    /* 默认样式，兼容没有新类名的情况 */
+    grid-area: yesterday-change;
   }
 
   .profit-cell {
@@ -1236,6 +1247,17 @@ input[type="number"] {
 
   .tabs {
     max-width: none !important;
+  }
+
+  /* 历史净值时间区间选择器 - 移动端换行显示 */
+  .time-range-tabs .row {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .time-range-tabs .tab {
+    flex: 0 0 auto;
+    min-width: fit-content;
   }
 }
 
