@@ -4427,29 +4427,16 @@ export default function HomePage() {
                             {viewMode === 'list' ? (
                               <>
                                 <div className="table-cell name-cell">
-                                  {currentTab !== 'all' && currentTab !== 'fav' ? (
-                                    <button
-                                      className="icon-button fav-button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        removeFundFromCurrentGroup(f.code);
-                                      }}
-                                      title="从当前分组移除"
-                                    >
-                                      <ExitIcon width="18" height="18" style={{ transform: 'rotate(180deg)' }} />
-                                    </button>
-                                  ) : (
-                                    <button
-                                      className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        toggleFavorite(f.code);
-                                      }}
-                                      title={favorites.has(f.code) ? "取消自选" : "添加自选"}
-                                    >
-                                      <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
-                                    </button>
-                                  )}
+                                  <button
+                                    className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleFavorite(f.code);
+                                    }}
+                                    title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+                                  >
+                                    <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+                                  </button>
                                   <div className="title-text">
                                     <span
                                       className={`name-text ${f.jzrq === todayStr ? 'updated' : ''}`}
@@ -4581,44 +4568,46 @@ export default function HomePage() {
                                   );
                                 })()}
                                 <div className="table-cell text-center action-cell" style={{ gap: 4 }}>
-                                  <button
-                                    className="icon-button danger"
-                                    onClick={() => !refreshing && requestRemoveFund(f)}
-                                    title="删除"
-                                    disabled={refreshing}
-                                    style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-                                  >
-                                    <TrashIcon width="14" height="14" />
-                                  </button>
+                                  {currentTab !== 'all' && currentTab !== 'fav' ? (
+                                    <button
+                                      className="icon-button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        removeFundFromCurrentGroup(f.code);
+                                      }}
+                                      title="从分组移除"
+                                      disabled={refreshing}
+                                      style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+                                    >
+                                      <ExitIcon width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
+                                    </button>
+                                  ) : (
+                                    <button
+                                      className="icon-button danger"
+                                      onClick={() => !refreshing && requestRemoveFund(f)}
+                                      title="删除"
+                                      disabled={refreshing}
+                                      style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+                                    >
+                                      <TrashIcon width="14" height="14" />
+                                    </button>
+                                  )}
                                 </div>
                               </>
                             ) : (
                               <>
                                 <div className="row" style={{ marginBottom: 10 }}>
                                   <div className="title">
-                                    {currentTab !== 'all' && currentTab !== 'fav' ? (
-                                      <button
-                                        className="icon-button fav-button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          removeFundFromCurrentGroup(f.code);
-                                        }}
-                                        title="从当前分组移除"
-                                      >
-                                        <ExitIcon width="18" height="18" style={{ transform: 'rotate(180deg)' }} />
-                                      </button>
-                                    ) : (
-                                      <button
-                                        className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleFavorite(f.code);
-                                        }}
-                                        title={favorites.has(f.code) ? "取消自选" : "添加自选"}
-                                      >
-                                        <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
-                                      </button>
-                                    )}
+                                    <button
+                                      className={`icon-button fav-button ${favorites.has(f.code) ? 'active' : ''}`}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(f.code);
+                                      }}
+                                      title={favorites.has(f.code) ? "取消自选" : "添加自选"}
+                                    >
+                                      <StarIcon width="18" height="18" filled={favorites.has(f.code)} />
+                                    </button>
                                     <div className="title-text">
                                       <span
                                         className={`name-text ${f.jzrq === todayStr ? 'updated' : ''}`}
@@ -4636,15 +4625,30 @@ export default function HomePage() {
                                       <strong>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</strong>
                                     </div>
                                     <div className="row" style={{ gap: 4 }}>
-                                      <button
-                                        className="icon-button danger"
-                                        onClick={() => !refreshing && requestRemoveFund(f)}
-                                        title="删除"
-                                        disabled={refreshing}
-                                        style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
-                                      >
-                                        <TrashIcon width="14" height="14" />
-                                      </button>
+                                      {currentTab !== 'all' && currentTab !== 'fav' ? (
+                                        <button
+                                          className="icon-button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeFundFromCurrentGroup(f.code);
+                                          }}
+                                          title="从分组移除"
+                                          disabled={refreshing}
+                                          style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+                                        >
+                                          <ExitIcon width="14" height="14" style={{ transform: 'rotate(180deg)' }} />
+                                        </button>
+                                      ) : (
+                                        <button
+                                          className="icon-button danger"
+                                          onClick={() => !refreshing && requestRemoveFund(f)}
+                                          title="删除"
+                                          disabled={refreshing}
+                                          style={{ width: '28px', height: '28px', opacity: refreshing ? 0.6 : 1, cursor: refreshing ? 'not-allowed' : 'pointer' }}
+                                        >
+                                          <TrashIcon width="14" height="14" />
+                                        </button>
+                                      )}
                                     </div>
                                   </div>
                                 </div>
