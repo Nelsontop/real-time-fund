@@ -190,12 +190,6 @@ real-time-fund/
 - [ ] 重装操作系统之前
 - [ ] 定期备份（建议每月一次）
 
-## 💬 开发者交流群
-
-欢迎基金实时开发者加入微信群聊讨论开发与协作：
-
-<img src="./doc/webchatGroup.jpg" width="300">
-
 ## 📝 免责声明
 
 本项目所有数据均来自公开接口，仅供个人学习及参考使用。数据可能存在延迟，不作为任何投资建议。
@@ -211,9 +205,3 @@ real-time-fund/
 完整协议文本见仓库根目录 [LICENSE](./LICENSE) 文件，或 [GNU AGPL v3 官方说明](https://www.gnu.org/licenses/agpl-3.0.html)。
 
 ---
-
-Made by [hzm](https://github.com/Nelsontop)
-
-## 🙏 致谢
-
-感谢所有贡献者和使用者的支持！
