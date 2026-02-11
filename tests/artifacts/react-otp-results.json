@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-02-11T13:41:47.651Z",
+  "foundSuccess": [],
+  "consoleLogs": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 ()",
+      "timestamp": 1770817297955
+    },
+    {
+      "type": "log",
+      "text": "Direct Supabase verification response: {access_token: eyJhbGciOiJFUzI1NiIsImtpZCI6IjRiODVhMjU0LTA2MjItNG…LbEpn26NCIY0_FdBqRt0iSxxWPQMEPUCh8OUSfPAf60IG2QlQ, token_type: bearer, expires_in: 3600, expires_at: 1770820903, refresh_token: casb36exe62d}",
+      "timestamp": 1770817305395
+    },
+    {
+      "type": "log",
+      "text": "Saved to localStorage: sb-091a97ac-365e-4ddb-b9c1-98cefc9b6bae-auth-token",
+      "timestamp": 1770817305410
+    },
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 ()",
+      "timestamp": 1770817305783
+    }
+  ],
+  "pageErrors": [],
+  "apiCalls": [
+    {
+      "url": "https://kghzmmyrqqurxtkrvbpf.supabase.co/auth/v1/verify",
+      "method": "POST",
+      "timestamp": 1770817300268,
+      "status": 200,
+      "body": "{\"access_token\":\"eyJhbGciOiJFUzI1NiIsImtpZCI6IjRiODVhMjU0LTA2MjItNGU5Ni04YzU4LTdjNzdjZWE5N2JiZSIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJodHRwczovL2tnaHptbXlycXF1cnh0a3J2YnBmLnN1cGFiYXNlLmNvL2F1dGgvdjEiLCJzdWIiOiIwOTFhOTdhYy0zNjVlLTRkZGItYjljMS05OGNlZmM5YjZiYWUiLCJhdWQiOiJhdXRoZW50aWNhdGVkIiwiZXhwIjoxNzcwODIwOTAzLCJpYXQiOjE3NzA4MTczMDMsImVtYWlsIjoiMzc5ODUyNzMxQHFxLmNvbSIsInBob25lIjoiIiwiYXBwX21ldGFkYXRhIjp7InByb3ZpZGVyIjoiZW1haWwiLCJwcm92aWRlcnMiOlsiZW1haWwiXX0sInVzZXJfbWV0YWRhdGEiOnsiZW1haWwiOiIzNzk4NTI3MzFAcXEuY29tIiwiZW1haWxfdmVyaWZpZWQiOnRydWUsInBob25lX3ZlcmlmaWVkIjpmYWxzZSwic3ViIjoiMDkxYTk3YWMtMzY1ZS00ZGRiLWI5YzEtOThjZWZjOWI2YmFlIn0sInJvbGUiOiJhdXRoZW50aWNhdGVkIiwiYWFsIjoiYWFsMSIsImFtciI6W3sibWV0aG9kIjoib3RwIiwidGltZXN0YW1wIjoxNzcwODE3MzAzfV0sInNlc3Npb25faWQiOiIxNTcxMjk5Yi0xMmY0LTQ4NzEtODI3Ny05Y2FkOTI5NTM5MTkiLCJpc19hbm9ueW1vdXMiOmZhbHNlfQ.IIMjH1mTn4ZyqRfa3RIPGXLfepiVZY1POaIJKLbEpn26NCIY0_FdBqRt0iSxxWPQMEPUCh8OUSfPAf60IG2QlQ\",\"token_type\":\"bearer\",\"expires_in\":3600,\"expires_at\":1770820903,\"refresh_token\":\"casb36exe62d\",\"user\":{\"id\":\"091a97ac-365e-4ddb-b9c1-98cefc9b6bae\",\"aud\":\"authenticated\",\"role\":\"authenticated\",\"email\":\"379852731@qq.com\",\"email_confirmed_at\":\"2026-02-09T07:19:48.435007Z\",\"phone\":\"\",\"confirmation_sent_at\":\"2026-02-09T07:19:07.577458Z\",\"confirmed_at\":\"2026-02-09T07:19:48.435007Z\",\"recovery_sent_at\":\"2026-02-11T13:24:52.181414Z\",\"last_sign_in_at\":\"2026-02-11T13:41:43.774081544Z\",\"app_metadata\":{\"provider\":\"email\",\"providers\":[\"email\"]},\"user_metadata\":{\"email\":\"379852731@qq.com\",\"email_verified\":true,\"phone_verified\":false,\"sub\":\"091a97ac-365e-4ddb-b9c1-98cefc9b6bae\"},\"identities\":[{\"identity_id\":\"73e3db98-67ea-49a9-aeb0-92b8e0a356ef\",\"id\":\"091a97ac-365e-4ddb-b9c1-98cefc9b6bae\",\"user_id\":\"091a97ac-365e-4ddb-b9c1-98cefc9b6bae\",\"identity_data\":{\"email\":\"379852731@qq.com\",\"email_verified\":true,\"phone_verified\":false,\"sub\":\"091a97ac-365e-4ddb-b9c1-98cefc9b6bae\"},\"provider\":\"email\",\"last_sign_in_at\":\"2026-02-09T07:19:07.574722Z\",\"created_at\":\"2026-02-09T07:19:07.574767Z\",\"updated_at\":\"2026-02-09T07:19:07.574767Z\",\"email\":\"379852731@qq.com\"}],\"created_at\":\"2026-02-09T07:19:07.571298Z\",\"updated_at\":\"2026-02-11T13:41:43.80737Z\",\"is_anonymous\":false}}"
+    }
+  ],
+  "localStorageKeys": [
+    "sb-091a97ac-365e-4ddb-b9c1-98cefc9b6bae-auth-token"
+  ],
+  "supabaseKeys": [
+    "sb-091a97ac-365e-4ddb-b9c1-98cefc9b6bae-auth-token"
+  ],
+  "isLoggedIn": true
+}

@@ -150,6 +150,56 @@ The app uses React hooks for state management with localStorage persistence:
 - Clearing browser cache DOES lose data
 - Use export/import or cloud sync for backup
 
+### Recent Improvements
+
+#### 2026-02-11: 云同步逻辑优化
+
+**问题修复**:
+1. **自选分组动态显示**
+   - 无自选基金时不显示自选 Tab
+   - 删除所有自选时自动切回"全部" Tab
+
+2. **移动端列表涨跌幅重叠修复**
+   - 为今日涨跌和昨日涨跌幅设置独立 grid-area
+   - 调整移动端 grid 布局避免重叠
+
+3. **详情页时间区间换行显示**
+   - 移动端支持时间区间按钮换行
+   - PC 端保持横向布局
+
+4. **云同步 userId 获取错误修复**
+   - handleSyncLocalConfig 使用 userIdRef.current 替代 cloudConfigModal.userId
+   - 确保 Supabase upsert 使用正确的 user_id
+
+5. **Supabase 数据库约束修复**
+   - user_configs 表的 user_id 列添加 UNIQUE 约束
+   - 提供 SQL 修复脚本
+   - onConflict: 'user_id' 正常工作
+
+6. **登录成功提示优化**
+   - 移除 SIGNED_IN 事件的"登录成功，正在同步云端数据"提示
+   - 移除 verifyOTP 后的"登录成功，正在同步云端数据"提示
+   - 数据一致时静默加载，不显示任何提示
+   - 数据不一致时显示冲突弹窗
+   - 只在真正需要时才提示用户
+
+**技术细节**:
+- 自选 Tab 条件渲染：`{favorites.size > 0 && ...}`
+- 移动端 grid: `grid-template-columns: 1fr auto auto 1fr`
+- userIdRef 同步更新：useEffect 监听 user 状态变化
+- SQL 修复：ALTER TABLE 添加 UNIQUE 约束
+- fetchCloudConfig：统一处理各种云端数据情况
+
+**相关提交**:
+- `1fc568a`: feat: 自选分组动态显示
+- `3727e7e`: fix: 移动端列表页面昨日涨跌幅和今日涨跌幅重叠
+- `6963349`: feat: 历史净值增加"成立以来"时间区间（已回滚）
+- `9f353d9`: docs: 添加 Supabase user_id 唯一约束修复脚本
+- `72b8704`: fix: 修复 userId 获取错误导致云同步失败
+- `ae62645`: fix: 增强云同步日志，便于调试
+- `f5e45b2`: fix: 优化登录成功提示逻辑
+- `9f353d9`: fix: 移除 SIGNED_IN 事件的登录成功提示
+
 ### Supabase Integration
 
 **Authentication**: Email-based OTP (one-time password) flow

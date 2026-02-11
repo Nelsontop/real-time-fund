@@ -1,0 +1,55 @@
+{
+  "timestamp": "2026-02-11T13:24:54.865Z",
+  "email": "379852731@qq.com",
+  "networkLog": [
+    {
+      "url": "https://kghzmmyrqqurxtkrvbpf.supabase.co/auth/v1/otp",
+      "method": "POST",
+      "requestHeaders": {
+        "sec-ch-ua-platform": "\"Windows\"",
+        "authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnaHptbXlycXF1cnh0a3J2YnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDc4ODQsImV4cCI6MjA4NjE4Mzg4NH0.T-eXCxUpB0MLa6dZwZVtlPPvujwRtORh_TJ7Orw_EKw",
+        "x-supabase-api-version": "2024-01-01",
+        "referer": "http://localhost:3000/",
+        "accept-language": "en-US",
+        "sec-ch-ua": "\"Not:A-Brand\";v=\"99\", \"HeadlessChrome\";v=\"145\", \"Chromium\";v=\"145\"",
+        "sec-ch-ua-mobile": "?0",
+        "x-client-info": "supabase-js-web/2.78.0",
+        "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.7632.6 Safari/537.36",
+        "content-type": "application/json;charset=UTF-8",
+        "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtnaHptbXlycXF1cnh0a3J2YnBmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA2MDc4ODQsImV4cCI6MjA4NjE4Mzg4NH0.T-eXCxUpB0MLa6dZwZVtlPPvujwRtORh_TJ7Orw_EKw"
+      },
+      "timestamp": 1770816289474,
+      "status": 200,
+      "statusText": "",
+      "responseHeaders": {
+        "sb-project-ref": "kghzmmyrqqurxtkrvbpf",
+        "access-control-expose-headers": "X-Total-Count, Link, X-Supabase-Api-Version",
+        "cf-cache-status": "DYNAMIC",
+        "sb-request-id": "019c4ce0-4362-70ac-afba-ab022276d5b3",
+        "x-envoy-attempt-count": "1",
+        "x-content-type-options": "nosniff",
+        "alt-svc": "h3=\":443\"; ma=86400",
+        "date": "Wed, 11 Feb 2026 13:24:53 GMT",
+        "content-type": "application/json",
+        "vary": "Origin, Accept-Encoding",
+        "strict-transport-security": "max-age=31536000; includeSubDomains; preload",
+        "x-envoy-upstream-service-time": "986",
+        "access-control-allow-credentials": "true",
+        "cf-ray": "9cc42b3efd09053e-SJC",
+        "access-control-allow-origin": "http://localhost:3000",
+        "content-length": "2",
+        "server": "cloudflare",
+        "sb-gateway-version": "1"
+      },
+      "responseBody": "{}"
+    }
+  ],
+  "consoleLogs": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 403 ()",
+      "timestamp": 1770816287994
+    }
+  ],
+  "pageErrors": []
+}
