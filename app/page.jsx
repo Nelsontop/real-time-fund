@@ -13,7 +13,7 @@ import { ChevronIcon, CloseIcon, CloudIcon, DragIcon, ExitIcon, GridIcon, ListIc
 import githubImg from "./assets/github.svg";
 import weChatGroupImg from "./assets/weChatGroup.png";
 import { supabase, isSupabaseConfigured } from './lib/supabase';
-import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback, fetchFundHistoryNetValue, fetchFundHistoryAll } from './api/fund';
+import { fetchFundData, fetchLatestRelease, fetchShanghaiIndexDate, fetchSmartFundNetValue, searchFunds, submitFeedback, fetchFundHistoryNetValue } from './api/fund';
 import packageJson from '../package.json';
 
 dayjs.extend(utc);
@@ -1834,27 +1834,26 @@ function GroupSummary({ funds, holdings, groupName, getProfit }) {
 }
 
 function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRemoveFromGroup }) {
-  const [timeRange, setTimeRange] = useState('1m'); // 7d, 1m, 3m, 6m, 12m, all
-  const [historyData, setHistoryData] = useState({ '7d': [], '1m': [], '3m': [], '6m': [], '12m': [], 'all': [] });
-  const [loading, setLoading] = useState({ '7d': false, '1m': false, '3m': false, '6m': false, '12m': false, 'all': false });
+  const [timeRange, setTimeRange] = useState('1m'); // 7d, 1m, 3m, 6m, 12m
+  const [historyData, setHistoryData] = useState({ '7d': [], '1m': [], '3m': [], '6m': [], '12m': [] });
+  const [loading, setLoading] = useState({ '7d': false, '1m': false, '3m': false, '6m': false, '12m': false });
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!fund?.code) return;
 
     const fetchAllHistory = async () => {
-      setLoading({ '7d': true, '1m': true, '3m': true, '6m': true, '12m': true, 'all': true });
+      setLoading({ '7d': true, '1m': true, '3m': true, '6m': true, '12m': true });
       setError(null);
 
       try {
         const today = nowInTz();
-        const [data7d, data1m, data3m, data6m, data12m, dataAll] = await Promise.all([
+        const [data7d, data1m, data3m, data6m, data12m] = await Promise.all([
           fetchFundHistoryNetValue(fund.code, today, 7, 'day'),
           fetchFundHistoryNetValue(fund.code, today, 1, 'month'),
           fetchFundHistoryNetValue(fund.code, today, 3, 'month'),
           fetchFundHistoryNetValue(fund.code, today, 6, 'month'),
           fetchFundHistoryNetValue(fund.code, today, 12, 'month'),
-          fetchFundHistoryAll(fund.code), // 获取成立以来所有数据
         ]);
 
         setHistoryData({
@@ -1863,7 +1862,6 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
           '3m': data3m,
           '6m': data6m,
           '12m': data12m,
-          'all': dataAll,
         });
       } catch (err) {
         setError('加载历史数据失败');
@@ -1980,7 +1978,6 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
                   { key: '3m', label: '3月' },
                   { key: '6m', label: '6月' },
                   { key: '12m', label: '1年' },
-                  { key: 'all', label: '成立以来' },
                 ].map(range => (
                   <button
                     key={range.key}
