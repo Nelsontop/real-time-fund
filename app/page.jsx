@@ -3619,7 +3619,7 @@ export default function HomePage() {
         storageHelper.setItem('localUpdatedAt', now);
         const payloadComparable = getComparablePayload(payload);
         lastSyncedRef.current = payloadComparable;
-        showToast('已自动同步本地配置到云端', 'success');
+        showToast('登录成功，已同步本地数据到云端', 'success');
         return;
       }
       if (data?.data && typeof data.data === 'object' && Object.keys(data.data).length > 0) {
@@ -3635,12 +3635,15 @@ export default function HomePage() {
         }
 
         await applyCloudConfig(data.data, data.updated_at);
+        showToast('登录成功，已从云端加载配置', 'success');
         return;
       }
       // 云端记录存在但数据为空，同步本地数据
       await syncUserConfig(userId, false);
+      showToast('登录成功，已同步本地数据到云端', 'success');
     } catch (e) {
       console.error('获取云端配置失败', e);
+      showToast('云端配置加载失败', 'error');
     }
   };
 
