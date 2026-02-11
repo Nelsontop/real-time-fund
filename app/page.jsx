@@ -3719,11 +3719,22 @@ export default function HomePage() {
   };
 
   const handleSyncLocalConfig = async () => {
-    const userId = cloudConfigModal.userId;
+    // 使用 userIdRef.current 而不是 cloudConfigModal.userId
+    // 因为 userIdRef 会随 user 状态自动更新，更可靠
+    const userId = userIdRef.current;
     const cloudData = cloudConfigModal.cloudData;
 
-    console.log('[handleSyncLocalConfig] Called with userId:', userId);
-    console.log('[handleSyncLocalConfig] Cloud data exists:', !!cloudData);
+    console.log('[handleSyncLocalConfig] Called');
+    console.log('  - userId from userIdRef.current:', userId);
+    console.log('  - userId from cloudConfigModal.userId:', cloudConfigModal.userId);
+    console.log('  - Cloud data exists:', !!cloudData);
+
+    if (!userId) {
+      console.error('[handleSyncLocalConfig] ERROR: userId is null!');
+      showToast('用户未登录，无法同步', 'error');
+      setCloudConfigModal({ open: false, userId: null, cloudData: null });
+      return;
+    }
 
     setCloudConfigModal({ open: false, userId: null, cloudData: null });
 
