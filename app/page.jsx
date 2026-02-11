@@ -2939,7 +2939,14 @@ export default function HomePage() {
         setLoginSuccess('');
         setLoginError('');
       }
-      fetchCloudConfig(session.user.id);
+      // SIGNED_IN 事件时，异步获取云端配置并显示提示
+      if (event === 'SIGNED_IN') {
+        showToast('登录成功，正在同步云端数据...', 'success');
+        fetchCloudConfig(session.user.id).catch(err => {
+          console.error('获取云端配置失败', err);
+          showToast('登录成功，云端数据加载失败', 'error');
+        });
+      }
     };
 
     supabase.auth.getSession().then(async ({ data, error }) => {
@@ -3052,12 +3059,22 @@ export default function HomePage() {
       });
       if (error) throw error;
       if (data?.user) {
+        // 验证成功，设置用户状态
+        setUser(data.user);
         setLoginModalOpen(false);
         setLoginEmail('');
         setLoginOtp('');
         setLoginSuccess('');
         setLoginError('');
-        fetchCloudConfig(data.user.id);
+
+        // 显示登录成功提示
+        showToast('登录成功，正在同步云端数据...', 'success');
+
+        // 异步获取云端配置（不阻塞登录流程）
+        fetchCloudConfig(data.user.id).catch(err => {
+          console.error('获取云端配置失败', err);
+          showToast('登录成功，云端数据加载失败', 'error');
+        });
       }
     } catch (err) {
       setLoginError(err.message || '验证失败，请检查验证码或稍后再试');
