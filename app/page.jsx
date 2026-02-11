@@ -4344,8 +4344,8 @@ export default function HomePage() {
                       <div className="table-header-row">
                         <div className="table-header-cell">基金名称</div>
                         <div className="table-header-cell text-right">净值/估值</div>
-                        <div className="table-header-cell text-right">昨日涨跌幅</div>
                         <div className="table-header-cell text-right">今日涨跌</div>
+                        <div className="table-header-cell text-right">昨日涨跌幅</div>
                         <div className="table-header-cell text-right">估值时间</div>
                         <div className="table-header-cell text-right">持仓金额</div>
                         <div className="table-header-cell text-right">当日盈亏</div>
@@ -4479,12 +4479,6 @@ export default function HomePage() {
                                   );
                                 })()}
                                 <div className="table-cell text-right change-cell">
-                                  {/* 昨日涨跌幅 - 始终显示 */}
-                                  <span className={f.zzl > 0 ? 'up' : f.zzl < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
-                                    {f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'}
-                                  </span>
-                                </div>
-                                <div className="table-cell text-right change-cell">
                                   {/* 今日涨跌 - 仅在有估值数据时显示 */}
                                   {f.noValuation ? (
                                     <span style={{ fontWeight: 700 }}>—</span>
@@ -4493,6 +4487,12 @@ export default function HomePage() {
                                       {f.estPricedCoverage > 0.05 ? `${f.estGszzl > 0 ? '+' : ''}${f.estGszzl.toFixed(2)}%` : (typeof f.gszzl === 'number' ? `${f.gszzl > 0 ? '+' : ''}${f.gszzl.toFixed(2)}%` : '—')}
                                     </span>
                                   )}
+                                </div>
+                                <div className="table-cell text-right change-cell">
+                                  {/* 昨日涨跌幅 - 始终显示 */}
+                                  <span className={f.zzl > 0 ? 'up' : f.zzl < 0 ? 'down' : ''} style={{ fontWeight: 700 }}>
+                                    {f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'}
+                                  </span>
                                 </div>
                                 <div className="table-cell text-right time-cell">
                                   <span className="muted" style={{ fontSize: '12px' }}>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</span>
@@ -4651,11 +4651,6 @@ export default function HomePage() {
 
                                 <div className="row" style={{ marginBottom: 12 }}>
                                   <Stat label="单位净值" value={f.dwjz ?? '—'} />
-                                  <Stat
-                                    label="昨日涨跌幅"
-                                    value={f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'}
-                                    delta={f.zzl}
-                                  />
                                   {!f.noValuation && (
                                     <>
                                       <Stat label="估值净值" value={f.estPricedCoverage > 0.05 ? f.estGsz.toFixed(4) : (f.gsz ?? '—')} />
@@ -4666,6 +4661,11 @@ export default function HomePage() {
                                       />
                                     </>
                                   )}
+                                  <Stat
+                                    label="昨日涨跌幅"
+                                    value={f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'}
+                                    delta={f.zzl}
+                                  />
                                 </div>
 
                                 <div className="row" style={{ marginBottom: 12 }}>
