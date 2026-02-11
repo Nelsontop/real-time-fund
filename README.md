@@ -4,6 +4,11 @@
 
 预览地址：[https://Nelsontop.github.io/real-time-fund/](https://Nelsontop.github.io/real-time-fund/)
 
+<img width="2517" height="806" alt="image" src="https://github.com/user-attachments/assets/1facba71-a738-471c-ae71-cb480f241421" />
+
+<img width="727" height="1071" alt="image" src="https://github.com/user-attachments/assets/0618a089-a0ad-48f1-9acd-02f2a148631d" />
+
+
 ## ✨ 特性
 
 - **📊 实时估值**：通过输入基金编号，实时获取并展示基金的单位净值、估值净值及实时涨跌幅
