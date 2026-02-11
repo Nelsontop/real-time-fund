@@ -2939,12 +2939,10 @@ export default function HomePage() {
         setLoginSuccess('');
         setLoginError('');
       }
-      // SIGNED_IN 事件时，异步获取云端配置并显示提示
+      // SIGNED_IN 事件时，异步获取云端配置（不显示提示）
       if (event === 'SIGNED_IN') {
-        showToast('登录成功，正在同步云端数据...', 'success');
         fetchCloudConfig(session.user.id).catch(err => {
           console.error('获取云端配置失败', err);
-          showToast('登录成功，云端数据加载失败', 'error');
         });
       }
     };
