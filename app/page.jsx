@@ -5599,26 +5599,27 @@ async function debugWeChatPush(currentFunds) {
     }
 
     // 构建推送消息
-    const changes = fundsWithChange.map(f => {
+    const textLines = fundsWithChange.map(f => {
       const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
-      return {
-        fund: f.name,
-        code: f.code,
-        change: changePercent
-      };
+      return `${f.name}(${f.code}): ${changePercent > 0 ? '+' : ''}${changePercent?.toFixed(2)}%`;
     });
+
+    const textContent = `📊 基估宝调试推送\n\n` +
+                     `获取到 ${fundsWithChange.length} 只基金的涨跌幅数据：\n\n` +
+                     textLines.join('\n') +
+                     `\n\n⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`;
+
+    console.log('准备发送推送消息:', textContent);
 
     const message = {
       msgtype: 'text',
       text: {
-        content: `📊 基估宝调试推送\n\n` +
-                `获取到 ${fundsWithChange.length} 只基金的涨跌幅数据：\n\n` +
-                changes.map(f =>
-                  `${f.fund}(${f.code}): ${f.change > 0 ? '+' : ''}${f.change?.toFixed(2)}%`
-                ).join('\n') +
-                `\n\n⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`
+        content: textContent
       }
     };
+
+    console.log('Webhook URL:', webhookUrl);
+    console.log('发送消息格式:', JSON.stringify(message, null, 2));
 
     // 发送到企业微信 webhook
     const response = await fetch(webhookUrl, {
@@ -5629,18 +5630,24 @@ async function debugWeChatPush(currentFunds) {
       body: JSON.stringify(message)
     });
 
+    console.log('响应状态:', response.status, response.statusText);
+
     if (!response.ok) {
       const errorText = await response.text();
-      return { success: false, message: `推送失败: ${response.status} - ${errorText}` };
+      console.error('错误响应:', errorText);
+      return { success: false, message: `推送失败: ${response.status}` };
     }
 
     const result = await response.json();
+    console.log('企微响应:', result);
+
     if (result.errcode !== 0) {
-      return { success: false, message: `企微返回错误: ${result.errmsg}` };
+      return { success: false, message: `企微错误(${result.errcode}): ${result.errmsg}` };
     }
 
     return { success: true, message: `成功推送 ${fundsWithChange.length} 只基金数据` };
   } catch (error) {
-    return { success: false, message: `请求失败: ${error.message}` };
+    console.error('推送异常:', error);
+    return { success: false, message: `网络错误: ${error.message}` };
   }
 }
