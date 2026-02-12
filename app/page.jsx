@@ -5592,7 +5592,7 @@ async function debugWeChatPush(currentFunds) {
 
   try {
     // 获取所有有涨跌幅数据的基金（使用估算涨跌幅 gszzl 或 estGszzl）
-    const fundsWithChange = currentFunds.filter(f => {
+    let fundsWithChange = currentFunds.filter(f => {
       const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
       return typeof changePercent === 'number' && !isNaN(changePercent);
     });
@@ -5601,16 +5601,27 @@ async function debugWeChatPush(currentFunds) {
       return { success: false, message: '当前没有基金涨跌幅数据' };
     }
 
-    // 构建推送消息
-    const textLines = fundsWithChange.map(f => {
-      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
-      return `${f.name}(${f.code}): ${changePercent > 0 ? '+' : ''}${changePercent?.toFixed(2)}%`;
+    // 按涨跌幅倒序排序（涨幅在前）
+    fundsWithChange.sort((a, b) => {
+      const changeA = a.estPricedCoverage > 0.05 ? a.estGszzl : a.gszzl;
+      const changeB = b.estPricedCoverage > 0.05 ? b.estGszzl : b.gszzl;
+      return changeB - changeA;
     });
 
-    const textContent = `📊 基估宝调试推送\n\n` +
-                     `获取到 ${fundsWithChange.length} 只基金的涨跌幅数据：\n\n` +
-                     textLines.join('\n') +
-                     `\n\n⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`;
+    // 构建推送消息（每个基金一行，涨幅用🔴，跌幅用🟢）
+    const textLines = fundsWithChange.map(f => {
+      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
+      const icon = changePercent > 0 ? '🔴' : '🟢'; // 涨红跌绿
+      return `${icon} ${f.name}(${f.code}): ${changePercent > 0 ? '+' : ''}${changePercent?.toFixed(2)}%`;
+    });
+
+    const textContent = `📊 基估宝调试推送
+
+获取到 ${fundsWithChange.length} 只基金的涨跌幅数据（按涨跌幅倒序）：
+
+${textLines.join('\n')}
+
+⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`;
 
     console.log('准备发送推送消息:', textContent);
 
