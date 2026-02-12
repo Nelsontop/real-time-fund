@@ -2136,9 +2136,9 @@ export default function HomePage() {
   const isLoggingOutRef = useRef(false);
 
   // 刷新频率状态
-  const [refreshMs, setRefreshMs] = useState(30000);
+  const [refreshMs, setRefreshMs] = useState(300000);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [tempSeconds, setTempSeconds] = useState(30);
+  const [tempSeconds, setTempSeconds] = useState(300);
 
   // 企业微信推送配置
   const [weChatWebhookUrl, setWeChatWebhookUrl] = useState('');
@@ -2861,7 +2861,7 @@ export default function HomePage() {
         const codes = Array.from(new Set(deduped.map((f) => f.code)));
         if (codes.length) refreshAll(codes);
       }
-      const savedMs = parseInt(localStorage.getItem('refreshMs') || '30000', 10);
+      const savedMs = parseInt(localStorage.getItem('refreshMs') || '300000', 10);
       if (Number.isFinite(savedMs) && savedMs >= 5000) {
         setRefreshMs(savedMs);
         setTempSeconds(Math.round(savedMs / 1000));
@@ -3601,7 +3601,7 @@ export default function HomePage() {
         funds,
         favorites: cleanedFavorites,
         groups: cleanedGroups,
-        refreshMs: parseInt(localStorage.getItem('refreshMs') || '30000', 10),
+        refreshMs: parseInt(localStorage.getItem('refreshMs') || '300000', 10),
         holdings: cleanedHoldings,
         pendingTrades: cleanedPendingTrades,
         exportedAt: nowInTz().toISOString()
@@ -3829,7 +3829,7 @@ export default function HomePage() {
         funds: JSON.parse(localStorage.getItem('funds') || '[]'),
         favorites: JSON.parse(localStorage.getItem('favorites') || '[]'),
         groups: JSON.parse(localStorage.getItem('groups') || '[]'),
-        refreshMs: parseInt(localStorage.getItem('refreshMs') || '30000', 10),
+        refreshMs: parseInt(localStorage.getItem('refreshMs') || '300000', 10),
         holdings: JSON.parse(localStorage.getItem('holdings') || '{}'),
         pendingTrades: JSON.parse(localStorage.getItem('pendingTrades') || '[]'),
         exportedAt: nowInTz().toISOString()
