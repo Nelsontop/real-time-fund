@@ -4537,10 +4537,10 @@ export default function HomePage() {
                         <div className="table-header-cell text-right">净值/估值</div>
                         <div className="table-header-cell text-right">今日涨跌</div>
                         <div className="table-header-cell text-right">昨日涨跌幅</div>
-                        <div className="table-header-cell text-right">估值时间</div>
                         <div className="table-header-cell text-right">当日盈亏</div>
                         <div className="table-header-cell text-right">持仓金额</div>
                         <div className="table-header-cell text-right">持有收益</div>
+                        <div className="table-header-cell text-right">估值时间</div>
                       </div>
                     )}
                     <AnimatePresence mode="popLayout">
@@ -4671,9 +4671,6 @@ export default function HomePage() {
                                     {f.zzl !== undefined && f.zzl !== null ? `${f.zzl > 0 ? '+' : ''}${Number(f.zzl).toFixed(2)}%` : '—'}
                                   </span>
                                 </div>
-                                <div className="table-cell text-right time-cell">
-                                  <span className="muted" style={{ fontSize: '12px' }}>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</span>
-                                </div>
                                 {(() => {
                                   const holding = holdings[f.code];
                                   const profit = getHoldingProfit(f, holding);
@@ -4757,6 +4754,9 @@ export default function HomePage() {
                                     </div>
                                   );
                                 })()}
+                                <div className="table-cell text-right time-cell">
+                                  <span className="muted" style={{ fontSize: '12px' }}>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</span>
+                                </div>
                               </>
                             ) : (
                               <>
