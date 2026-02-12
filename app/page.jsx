@@ -2159,6 +2159,8 @@ export default function HomePage() {
   // 企业微信推送配置
   const [weChatWebhookUrl, setWeChatWebhookUrl] = useState('');
   const [weChatPushEnabled, setWeChatPushEnabled] = useState(false);
+  const [weChatDebugResult, setWeChatDebugResult] = useState(null);
+  const [weChatDebugLoading, setWeChatDebugLoading] = useState(false);
 
   // 全局刷新状态
   const [refreshing, setRefreshing] = useState(false);
@@ -5217,6 +5219,37 @@ export default function HomePage() {
                     <span style={{ marginLeft: 4, userSelect: 'none', fontSize: '14px' }}>启用推送</span>
                   </label>
                 </div>
+                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="button"
+                    onClick={async () => {
+                      setWeChatDebugLoading(true);
+                      setWeChatDebugResult(null);
+                      const result = await debugWeChatPush(funds);
+                      setWeChatDebugResult(result);
+                      setWeChatDebugLoading(false);
+                      // 3秒后清除提示
+                      if (result.success) {
+                        setTimeout(() => setWeChatDebugResult(null), 3000);
+                      }
+                    }}
+                    disabled={weChatDebugLoading}
+                    style={{ flex: 1, fontSize: '13px', padding: '6px 12px' }}
+                  >
+                    {weChatDebugLoading ? '推送中...' : '调试推送'}
+                  </button>
+                  {weChatDebugResult && (
+                    <div style={{
+                      fontSize: '12px',
+                      color: weChatDebugResult.success ? 'var(--up)' : '#ff6b6b',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {weChatDebugResult.success ? '✓ ' : '✗ '}
+                      {weChatDebugResult.message}
+                    </div>
+                  )}
+                </div>
               </div>
               <input
                 className="input"
@@ -5541,5 +5574,67 @@ async function sendWeChatPush(changedFunds) {
     console.log("企业微信推送成功:", result);
   } catch (error) {
     console.error("企业微信推送失败:", error);
+  }
+}
+
+// 调试推送函数 - 获取当前所有基金涨跌幅并发送到企微
+async function debugWeChatPush(currentFunds) {
+  const webhookUrl = typeof localStorage !== 'undefined'
+    ? localStorage.getItem('weChatWebhookUrl')
+    : null;
+
+  if (!webhookUrl) {
+    return { success: false, message: '请先配置企业微信 Webhook URL' };
+  }
+
+  try {
+    // 获取所有有涨跌幅数据的基金
+    const fundsWithChange = currentFunds.filter(f => f.change !== null && f.change !== undefined);
+
+    if (fundsWithChange.length === 0) {
+      return { success: false, message: '当前没有基金涨跌幅数据' };
+    }
+
+    // 构建推送消息
+    const changes = fundsWithChange.map(f => ({
+      fund: f.name,
+      code: f.code,
+      change: f.change
+    }));
+
+    const message = {
+      msgtype: 'text',
+      text: {
+        content: `📊 基估宝调试推送\n\n` +
+                `获取到 ${fundsWithChange.length} 只基金的涨跌幅数据：\n\n` +
+                fundsWithChange.map(f =>
+                  `${f.name}(${f.code}): ${f.change > 0 ? '+' : ''}${f.change?.toFixed(2)}%`
+                ).join('\n') +
+                `\n\n⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`
+      }
+    };
+
+    // 发送到企业微信 webhook
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(message)
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return { success: false, message: `推送失败: ${response.status} - ${errorText}` };
+    }
+
+    const result = await response.json();
+    if (result.errcode !== 0) {
+      return { success: false, message: `企微返回错误: ${result.errmsg}` };
+    }
+
+    return { success: true, message: `成功推送 ${fundsWithChange.length} 只基金数据` };
+  } catch (error) {
+    return { success: false, message: `请求失败: ${error.message}` };
   }
 }
