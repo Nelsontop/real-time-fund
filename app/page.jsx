@@ -5432,6 +5432,16 @@ export default function HomePage() {
 async function sendWeChatPush(changedFunds) {
   if (!changedFunds || changedFunds.length === 0) return;
 
+  // 从 localStorage 读取 webhook URL
+  const webhookUrl = typeof localStorage !== 'undefined'
+    ? localStorage.getItem('weChatWebhookUrl')
+    : null;
+
+  if (!webhookUrl) {
+    console.error('企业微信 Webhook URL 未配置');
+    return;
+  }
+
   try {
     // 构建推送消息
     const changes = changedFunds.map(f => ({
@@ -5450,7 +5460,7 @@ async function sendWeChatPush(changedFunds) {
     };
 
     // 发送到企业微信 webhook
-    const response = await fetch(weChatWebhookUrl, {
+    const response = await fetch(webhookUrl, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
