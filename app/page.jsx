@@ -2161,6 +2161,7 @@ export default function HomePage() {
   const [weChatPushEnabled, setWeChatPushEnabled] = useState(false);
   const [weChatDebugResult, setWeChatDebugResult] = useState(null);
   const [weChatDebugLoading, setWeChatDebugLoading] = useState(false);
+  const [fundsHistory, setFundsHistory] = useState({}); // 存储上一次的基金数据，用于检测变化
 
   // 全局刷新状态
   const [refreshing, setRefreshing] = useState(false);
@@ -3310,6 +3311,21 @@ export default function HomePage() {
           });
           const deduped = dedupeByCode(merged);
           storageHelper.setItem('funds', JSON.stringify(deduped));
+
+          // 保存历史数据用于检测变化（保存涨跌幅数据）
+          const fundsHistory = deduped.reduce((acc, f) => {
+            const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
+            if (typeof changePercent === 'number' && !isNaN(changePercent)) {
+              acc[f.code] = {
+                name: f.name,
+                change: changePercent,
+                timestamp: Date.now()
+              };
+            }
+            return acc;
+          }, {});
+          setFundsHistory(fundsHistory);
+
           return deduped;
         });
 
@@ -3344,7 +3360,7 @@ export default function HomePage() {
               });
 
               if (changedFunds.length > 0) {
-                await sendWeChatPush(changedFunds);
+                await sendWeChatPush(changedFunds, funds);
               }
             } catch (error) {
               console.error('检测净值变化失败:', error);
@@ -5527,8 +5543,26 @@ export default function HomePage() {
 
 
 
-async function sendWeChatPush(changedFunds) {
+async function sendWeChatPush(changedFunds, previousFunds) {
   if (!changedFunds || changedFunds.length === 0) return;
+
+  // 检查是否在交易时间（工作日9:30-15:00）
+  const now = new Date();
+  const hour = now.getHours();
+  const minute = now.getMinutes();
+  const day = now.getDay(); // 0=周日, 6=周六
+
+  const isWeekday = day >= 1 && day <= 5; // 周一到周五
+  const isTradingHours = isWeekday && (
+    (hour === 9 && minute >= 30) || // 9:30及之后
+    (hour > 9 && hour < 15) || // 10:00-14:59
+    (hour === 15 && minute === 0) // 15:00:00
+  );
+
+  if (!isTradingHours) {
+    console.log('非交易时间，跳过推送');
+    return;
+  }
 
   // 从 localStorage 读取 webhook URL
   const webhookUrl = typeof localStorage !== 'undefined'
@@ -5541,12 +5575,46 @@ async function sendWeChatPush(changedFunds) {
   }
 
   try {
+    // 筛选出涨跌幅变化超过0.1%的基金
+    const significantChanges = changedFunds.filter(f => {
+      if (!previousFunds || !f.code) return false;
+      const prevFund = previousFunds[f.code];
+      if (!prevFund) return false;
+
+      const currentChange = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
+      const prevChange = prevFund.estPricedCoverage > 0.05 ? prevFund.estGszzl : prevFund.gszzl;
+
+      // 只比较数字类型的数据
+      if (typeof currentChange !== 'number' || typeof prevChange !== 'number') {
+        return false;
+      }
+
+      const changeDiff = Math.abs(currentChange - prevChange);
+      const isSignificant = changeDiff >= 0.1; // 变化0.1%以上
+
+      if (isSignificant) {
+        console.log(`${f.name} 变化: ${prevChange?.toFixed(2)}% -> ${currentChange?.toFixed(2)}% (差异: ${changeDiff.toFixed(2)}%)`);
+      }
+
+      return isSignificant;
+    });
+
+    if (significantChanges.length === 0) {
+      console.log('没有基金涨跌幅变化超过0.1%，跳过推送');
+      return;
+    }
+
+    console.log(`推送 ${significantChanges.length} 只显著变化的基金`);
+
     // 构建推送消息
-    const changes = changedFunds.map(f => ({
-      fund: f.name,
-      code: f.code,
-      change: f.change
-    }));
+    const changes = significantChanges.map(f => {
+      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
+      return {
+        fund: f.name,
+        code: f.code,
+        change: changePercent
+      };
+    });
 
     const message = {
       msgtype: 0,  // 文本消息
@@ -5601,24 +5669,7 @@ async function debugWeChatPush(currentFunds) {
       return { success: false, message: '当前没有基金涨跌幅数据' };
     }
 
-    // 检查是否在交易时间（工作日9:30-15:00）
-    const now = new Date();
-    const hour = now.getHours();
-    const minute = now.getMinutes();
-    const day = now.getDay(); // 0=周日, 6=周六
-
-    const isWeekday = day >= 1 && day <= 5; // 周一到周五
-    const isTradingHours = isWeekday && (
-      (hour === 9 && minute >= 30) || // 9:30及之后
-      (hour > 9 && hour < 15) || // 10:00-14:59
-      (hour === 15 && minute === 0) // 15:00:00
-    );
-
-    if (!isTradingHours) {
-      return { success: false, message: '当前非交易时间（仅工作日9:30-15:00推送）' };
-    }
-
-    console.log(`当前时间: ${now.toLocaleString('zh-CN', { hour12: false })}, 是否交易时间: ${isTradingHours}`);
+    console.log(`检查 ${currentFunds.length} 只基金，找到 ${fundsWithChange.length} 只有涨跌幅数据`);
 
     // 按涨跌幅倒序排序（涨幅在前）
     fundsWithChange.sort((a, b) => {
