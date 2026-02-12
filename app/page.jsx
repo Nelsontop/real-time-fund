@@ -5579,13 +5579,16 @@ async function sendWeChatPush(changedFunds) {
 
 // 调试推送函数 - 获取当前所有基金涨跌幅并发送到企微
 async function debugWeChatPush(currentFunds) {
-  const webhookUrl = typeof localStorage !== 'undefined'
+  let webhookUrl = typeof localStorage !== 'undefined'
     ? localStorage.getItem('weChatWebhookUrl')
     : null;
 
   if (!webhookUrl) {
     return { success: false, message: '请先配置企业微信 Webhook URL' };
   }
+
+  // 修复 URL 协议：将 https:// 替换为 https://
+  webhookUrl = webhookUrl.replace(/^https:\/\//, 'https://');
 
   try {
     // 获取所有有涨跌幅数据的基金（使用估算涨跌幅 gszzl 或 estGszzl）
@@ -5621,11 +5624,16 @@ async function debugWeChatPush(currentFunds) {
     console.log('Webhook URL:', webhookUrl);
     console.log('发送消息格式:', JSON.stringify(message, null, 2));
 
-    // 发送到企业微信 webhook
-    const response = await fetch(webhookUrl, {
+    // 使用 CORS 代理发送到企业微信 webhook
+    // 企业微信 API 不支持浏览器直接调用（CORS限制）
+    const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(webhookUrl)}`;
+    console.log('使用 CORS 代理:', corsProxyUrl);
+
+    const response = await fetch(corsProxyUrl, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
       },
       body: JSON.stringify(message)
     });
@@ -5648,6 +5656,6 @@ async function debugWeChatPush(currentFunds) {
     return { success: true, message: `成功推送 ${fundsWithChange.length} 只基金数据` };
   } catch (error) {
     console.error('推送异常:', error);
-    return { success: false, message: `网络错误: ${error.message}` };
+    return { success: false, message: `CORS错误: 浏览器无法直接调用企微API。请使用测试脚本: bash scripts/test-wechat-push.sh <URL>` };
   }
 }
