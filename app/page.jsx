@@ -2414,10 +2414,25 @@ export default function HomePage() {
       ? (currentNav - holding.cost) * holding.share
       : null;
 
+    // 当日收益率 = 当日盈亏 / 持仓金额 * 100
+    const profitTodayRate = profitToday !== null && amount > 0
+      ? (profitToday / amount) * 100
+      : null;
+
+    // 总收益率 = 总收益 / 总成本 * 100
+    const totalCost = typeof holding.cost === 'number' && typeof holding.share === 'number'
+      ? holding.cost * holding.share
+      : null;
+    const profitTotalRate = profitTotal !== null && totalCost !== null && totalCost > 0
+      ? (profitTotal / totalCost) * 100
+      : null;
+
     return {
       amount,
       profitToday,
-      profitTotal
+      profitTotal,
+      profitTodayRate,
+      profitTotalRate
     };
   };
 
@@ -4554,6 +4569,7 @@ export default function HomePage() {
                         <div className="table-header-cell text-right">今日涨跌</div>
                         <div className="table-header-cell text-right">昨日涨跌幅</div>
                         <div className="table-header-cell text-right">当日盈亏</div>
+                        <div className="table-header-cell text-right">当日收益率</div>
                         <div className="table-header-cell text-right">持仓金额</div>
                         <div className="table-header-cell text-right">持有收益</div>
                         <div className="table-header-cell text-right">估值时间</div>
@@ -4701,6 +4717,25 @@ export default function HomePage() {
                                       >
                                         {hasProfit
                                           ? `${profitValue > 0 ? '+' : profitValue < 0 ? '-' : ''}¥${Math.abs(profitValue).toFixed(2)}`
+                                          : ''}
+                                      </span>
+                                    </div>
+                                  );
+                                })()}
+                                {!isMobile && (() => {
+                                  const holding = holdings[f.code];
+                                  const profit = getHoldingProfit(f, holding);
+                                  const rateValue = profit ? profit.profitTodayRate : null;
+                                  const hasRate = rateValue !== null;
+
+                                  return (
+                                    <div className="table-cell text-right profit-rate-cell">
+                                      <span
+                                        className={hasRate ? (rateValue > 0 ? 'up' : rateValue < 0 ? 'down' : '') : 'muted'}
+                                        style={{ fontWeight: 700 }}
+                                      >
+                                        {hasRate
+                                          ? `${rateValue > 0 ? '+' : rateValue < 0 ? '-' : ''}${rateValue.toFixed(2)}%`
                                           : ''}
                                       </span>
                                     </div>
@@ -4864,6 +4899,14 @@ export default function HomePage() {
                                             {profit.profitToday > 0 ? '+' : profit.profitToday < 0 ? '-' : ''}¥{Math.abs(profit.profitToday).toFixed(2)}
                                           </span>
                                         </div>
+                                        {profit.profitTodayRate !== null && (
+                                          <div className="stat" style={{ flexDirection: 'column', gap: 4 }}>
+                                            <span className="label">当日收益率</span>
+                                            <span className={`value ${profit.profitTodayRate > 0 ? 'up' : profit.profitTodayRate < 0 ? 'down' : ''}`}>
+                                              {profit.profitTodayRate > 0 ? '+' : profit.profitTodayRate < 0 ? '-' : ''}{profit.profitTodayRate.toFixed(2)}%
+                                            </span>
+                                          </div>
+                                        )}
                                         {profit.profitTotal !== null && (
                                           <div
                                             className="stat"
