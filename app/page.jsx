@@ -5588,27 +5588,33 @@ async function debugWeChatPush(currentFunds) {
   }
 
   try {
-    // 获取所有有涨跌幅数据的基金
-    const fundsWithChange = currentFunds.filter(f => f.change !== null && f.change !== undefined);
+    // 获取所有有涨跌幅数据的基金（使用估算涨跌幅 gszzl 或 estGszzl）
+    const fundsWithChange = currentFunds.filter(f => {
+      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
+      return typeof changePercent === 'number' && !isNaN(changePercent);
+    });
 
     if (fundsWithChange.length === 0) {
       return { success: false, message: '当前没有基金涨跌幅数据' };
     }
 
     // 构建推送消息
-    const changes = fundsWithChange.map(f => ({
-      fund: f.name,
-      code: f.code,
-      change: f.change
-    }));
+    const changes = fundsWithChange.map(f => {
+      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
+      return {
+        fund: f.name,
+        code: f.code,
+        change: changePercent
+      };
+    });
 
     const message = {
       msgtype: 'text',
       text: {
         content: `📊 基估宝调试推送\n\n` +
                 `获取到 ${fundsWithChange.length} 只基金的涨跌幅数据：\n\n` +
-                fundsWithChange.map(f =>
-                  `${f.name}(${f.code}): ${f.change > 0 ? '+' : ''}${f.change?.toFixed(2)}%`
+                changes.map(f =>
+                  `${f.fund}(${f.code}): ${f.change > 0 ? '+' : ''}${f.change?.toFixed(2)}%`
                 ).join('\n') +
                 `\n\n⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`
       }
