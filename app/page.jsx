@@ -5191,11 +5191,14 @@ export default function HomePage() {
                 企业微信推送
               </div>
               <div style={{ marginBottom: 12 }}>
+                <div className="muted" style={{ fontSize: '11px', marginBottom: 6 }}>
+                  完整 URL 格式：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY
+                </div>
                 <div className="row" style={{ gap: 8, alignItems: 'center' }}>
                   <input
                     type="text"
                     className="input"
-                    placeholder="WeChat Webhook URL"
+                    placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..."
                     value={weChatWebhookUrl}
                     onChange={(e) => setWeChatWebhookUrl(e.target.value)}
                     style={{ flex: 1, padding: '8px 12px', fontSize: '14px' }}
