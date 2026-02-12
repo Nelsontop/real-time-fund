@@ -607,12 +607,11 @@ input[type="number"] {
   }
 
   .table-row {
-    grid-template-columns: 1fr auto auto 1fr;
+    grid-template-columns: 1fr auto auto;
     grid-template-areas:
-      "name value yesterday-change today-change"
-      "name time profit profit";
+      "name today-change yesterday-change";
     gap: 4px 8px;
-    padding: 12px !important;
+    padding: 10px 12px !important;
   }
 
   .name-cell {
@@ -620,17 +619,20 @@ input[type="number"] {
   }
 
   .value-cell {
-    grid-area: value;
+    display: none;
   }
 
   .change-today-cell {
     grid-area: today-change;
     text-align: right;
+    font-size: 15px;
   }
 
   .change-yesterday-cell {
     grid-area: yesterday-change;
     text-align: right;
+    font-size: 13px;
+    opacity: 0.7;
   }
 
   .change-cell {
@@ -639,12 +641,11 @@ input[type="number"] {
   }
 
   .profit-cell {
-    grid-area: profit;
+    display: none;
   }
 
   .time-cell {
-    grid-area: time;
-    justify-content: flex-end;
+    display: none;
   }
 
   .action-cell {
