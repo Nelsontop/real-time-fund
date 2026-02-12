@@ -3237,6 +3237,15 @@ export default function HomePage() {
     refreshingRef.current = true;
     setRefreshing(true);
     const uniqueCodes = Array.from(new Set(codes));
+
+    // 记录刷新前的净值用于比较变化
+    const oldNetValues = {};
+    funds.forEach(f => {
+      if (f.netValue !== null && f.netValue !== undefined) {
+        oldNetValues[f.code] = f.netValue;
+      }
+    });
+
     try {
       const updated = [];
       for (const c of uniqueCodes) {
@@ -3270,6 +3279,45 @@ export default function HomePage() {
           storageHelper.setItem('funds', JSON.stringify(deduped));
           return deduped;
         });
+
+        // 检测净值变化并发送企业微信推送
+        if (weChatPushEnabled && weChatWebhookUrl) {
+          setTimeout(async () => {
+            try {
+              const newNetValues = {};
+              funds.forEach(f => {
+                if (f.netValue !== null && f.netValue !== undefined) {
+                  newNetValues[f.code] = f.netValue;
+                }
+              });
+
+              const changedFunds = [];
+              Object.keys(oldNetValues).forEach(code => {
+                const newValue = newNetValues[code];
+                const oldValue = oldNetValues[code];
+
+                if (newValue !== undefined && Math.abs(oldValue - newValue) > 0.0001) {
+                  const fund = funds.find(f => f.code === code);
+                  if (fund) {
+                    changedFunds.push({
+                      code: fund.code,
+                      name: fund.name,
+                      oldNetValue: oldValue,
+                      newNetValue: newValue,
+                      change: (newValue - oldValue).toFixed(4)
+                    });
+                  }
+                }
+              });
+
+              if (changedFunds.length > 0) {
+                await sendWeChatPush(changedFunds);
+              }
+            } catch (error) {
+              console.error('检测净值变化失败:', error);
+            }
+          }, 1000);
+        }
       }
     } catch (e) {
       console.error(e);
@@ -5379,6 +5427,11 @@ export default function HomePage() {
 }
 
 
+
+
+async function sendWeChatPush(changedFunds) {
+  if (!changedFunds || changedFunds.length === 0) return;
+
   try {
     // 构建推送消息
     const changes = changedFunds.map(f => ({
@@ -5390,29 +5443,28 @@ export default function HomePage() {
     const message = {
       msgtype: 0,  // 文本消息
       content: JSON.stringify({
-        title: \"基估宝净值变动提醒\",
-        time: new Date().toLocaleString(\"zh-CN\", { hour12: false }),
+        title: "基估宝净值变动提醒",
+        time: new Date().toLocaleString("zh-CN", { hour12: false }),
         changes: changes
       })
     };
 
-    // 发送到企业微信 wehbook
+    // 发送到企业微信 webhook
     const response = await fetch(weChatWebhookUrl, {
-      method: \"POST\",
+      method: "POST",
       headers: {
-        \"Content-Type\": \"application/json\"
+        "Content-Type": "application/json"
       },
       body: JSON.stringify(message)
     });
 
-    if (\!response.ok) {
+    if (!response.ok) {
       throw new Error(`推送失败: ${response.status}`);
     }
 
     const result = await response.json();
-    console.log(\"企业微信推送成功:\", result);
+    console.log("企业微信推送成功:", result);
   } catch (error) {
-    console.error(\"企业微信推送失败:\", error);
+    console.error("企业微信推送失败:", error);
   }
 }
-
