@@ -5601,6 +5601,25 @@ async function debugWeChatPush(currentFunds) {
       return { success: false, message: '当前没有基金涨跌幅数据' };
     }
 
+    // 检查是否在交易时间（工作日9:30-15:00）
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const day = now.getDay(); // 0=周日, 6=周六
+
+    const isWeekday = day >= 1 && day <= 5; // 周一到周五
+    const isTradingHours = isWeekday && (
+      (hour === 9 && minute >= 30) || // 9:30及之后
+      (hour > 9 && hour < 15) || // 10:00-14:59
+      (hour === 15 && minute === 0) // 15:00:00
+    );
+
+    if (!isTradingHours) {
+      return { success: false, message: '当前非交易时间（仅工作日9:30-15:00推送）' };
+    }
+
+    console.log(`当前时间: ${now.toLocaleString('zh-CN', { hour12: false })}, 是否交易时间: ${isTradingHours}`);
+
     // 按涨跌幅倒序排序（涨幅在前）
     fundsWithChange.sort((a, b) => {
       const changeA = a.estPricedCoverage > 0.05 ? a.estGszzl : a.gszzl;
@@ -5619,7 +5638,7 @@ async function debugWeChatPush(currentFunds) {
 
 获取到 ${fundsWithChange.length} 只基金的涨跌幅数据（按涨跌幅倒序）：
 
-${textLines.join('\n')}
+${textLines.join('\n\n')}
 
 ⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`;
 
