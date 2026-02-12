@@ -4434,6 +4434,7 @@ export default function HomePage() {
                 >
                   <GridIcon width="16" height="16" />
                 </button>
+                {!isMobile && (
                 <button
                   className={`icon-button ${viewMode === 'list' ? 'active' : ''}`}
                   onClick={() => { setViewMode('list'); }}
@@ -4442,6 +4443,7 @@ export default function HomePage() {
                 >
                   <ListIcon width="16" height="16" />
                 </button>
+                )}
               </div>
 
               <div className="divider" style={{ width: '1px', height: '20px', background: 'var(--border)' }} />
