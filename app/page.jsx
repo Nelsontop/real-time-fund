@@ -1926,62 +1926,47 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
           <div className="fund-name" style={{ fontWeight: 600, fontSize: '18px', marginBottom: 8 }}>{fund?.name}</div>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div className="muted" style={{ fontSize: '14px' }}>#{fund?.code}</div>
-            {!isMobile && (
-              <div className="badge" style={{ fontSize: '12px' }}>
-                {fund?.noValuation ? '净值日期' : '估值时间'}: {fund?.noValuation ? (fund?.jzrq || '-') : (fund?.gztime || fund?.time || '-')}
-              </div>
-            )}
+            <div className="badge" style={{ fontSize: '12px' }}>
+              {fund?.noValuation ? '净值日期' : '估值时间'}: {fund?.noValuation ? (fund?.jzrq || '-') : (fund?.gztime || fund?.time || '-')}
+            </div>
           </div>
 
-          {!isMobile ? (
-            <>
-              <div className="row" style={{ gap: 16, marginBottom: 12 }}>
-                <div className="stat" style={{ flex: 1 }}>
-                  <span className="label">单位净值</span>
-                  <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>{fund?.dwjz ?? '—'}</span>
-                </div>
-                <div className="stat" style={{ flex: 1 }}>
-                  <span className="label">估值净值</span>
-                  <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>
-                    {fund?.estPricedCoverage > 0.05 ? fund?.estGsz?.toFixed(4) : (fund?.gsz ?? '—')}
-                  </span>
-                </div>
-              </div>
-
-              <div className="row" style={{ gap: 16 }}>
-                <div className="stat" style={{ flex: 1 }}>
-                  <span className="label">净值涨跌幅</span>
-                  <span className={`value ${fund?.zzl > 0 ? 'up' : fund?.zzl < 0 ? 'down' : ''}`} style={{ fontSize: '18px', fontWeight: 600 }}>
-                    {fund?.zzl !== undefined ? `${fund?.zzl > 0 ? '+' : ''}${Number(fund?.zzl).toFixed(2)}%` : '—'}
-                  </span>
-                </div>
-                <div className="stat" style={{ flex: 1 }}>
-                  <span className="label">估值涨跌幅</span>
-                  <span className={`value ${fund?.estPricedCoverage > 0.05 ? (fund?.estGszzl > 0 ? 'up' : fund?.estGszzl < 0 ? 'down' : '') : (Number(fund?.gszzl) > 0 ? 'up' : Number(fund?.gszzl) < 0 ? 'down' : '')}`} style={{ fontSize: '18px', fontWeight: 600 }}>
-                    {fund?.estPricedCoverage > 0.05 ? `${fund?.estGszzl > 0 ? '+' : ''}${fund?.estGszzl?.toFixed(2)}%` : (typeof fund?.gszzl === 'number' ? `${fund?.gszzl > 0 ? '+' : ''}${fund?.gszzl?.toFixed(2)}%` : fund?.gszzl ?? '—')}
-                  </span>
-                </div>
-              </div>
-
-              {fund?.estPricedCoverage > 0.05 && (
-                <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: 12, textAlign: 'right' }}>
-                  基于 {Math.round(fund?.estPricedCoverage * 100)}% 持仓估算
-                </div>
-              )}
-            </>
-          ) : (
-            // 移动端：只显示当日涨跌幅
-            <div className="stat" style={{ marginTop: 8 }}>
-              <span className="label">当日涨跌幅</span>
-              <span className={`value ${fund?.estPricedCoverage > 0.05 ? (fund?.estGszzl > 0 ? 'up' : fund?.estGszzl < 0 ? 'down' : '') : (Number(fund?.gszzl) > 0 ? 'up' : Number(fund?.gszzl) < 0 ? 'down' : '')}`} style={{ fontSize: '32px', fontWeight: 600 }}>
-                {fund?.estPricedCoverage > 0.05 ? `${fund?.estGszzl > 0 ? '+' : ''}${fund?.estGszzl?.toFixed(2)}%` : (typeof fund?.gszzl === 'number' ? `${fund?.gszzl > 0 ? '+' : ''}${fund?.gszzl?.toFixed(2)}%` : '—')}
+          <div className="row" style={{ gap: 16, marginBottom: 12 }}>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">单位净值</span>
+              <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>{fund?.dwjz ?? '—'}</span>
+            </div>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">估值净值</span>
+              <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>
+                {fund?.estPricedCoverage > 0.05 ? fund?.estGsz?.toFixed(4) : (fund?.gsz ?? '—')}
               </span>
+            </div>
+          </div>
+
+          <div className="row" style={{ gap: 16 }}>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">净值涨跌幅</span>
+              <span className={`value ${fund?.zzl > 0 ? 'up' : fund?.zzl < 0 ? 'down' : ''}`} style={{ fontSize: '18px', fontWeight: 600 }}>
+                {fund?.zzl !== undefined ? `${fund?.zzl > 0 ? '+' : ''}${Number(fund?.zzl).toFixed(2)}%` : '—'}
+              </span>
+            </div>
+            <div className="stat" style={{ flex: 1 }}>
+              <span className="label">估值涨跌幅</span>
+              <span className={`value ${fund?.estPricedCoverage > 0.05 ? (fund?.estGszzl > 0 ? 'up' : fund?.estGszzl < 0 ? 'down' : '') : (Number(fund?.gszzl) > 0 ? 'up' : Number(fund?.gszzl) < 0 ? 'down' : '')}`} style={{ fontSize: '18px', fontWeight: 600 }}>
+                {fund?.estPricedCoverage > 0.05 ? `${fund?.estGszzl > 0 ? '+' : ''}${fund?.estGszzl?.toFixed(2)}%` : (typeof fund?.gszzl === 'number' ? `${fund?.gszzl > 0 ? '+' : ''}${fund?.gszzl?.toFixed(2)}%` : fund?.gszzl ?? '—')}
+              </span>
+            </div>
+          </div>
+
+          {fund?.estPricedCoverage > 0.05 && (
+            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: 12, textAlign: 'right' }}>
+              基于 {Math.round(fund?.estPricedCoverage * 100)}% 持仓估算
             </div>
           )}
         </div>
 
-        {/* History Chart - PC端显示 */}
-        {!isMobile && (
+        {/* History Chart */}
         <div style={{ marginBottom: 24 }}>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div style={{ fontWeight: 600, fontSize: '16px' }}>历史净值走势</div>
@@ -2071,10 +2056,9 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
             </>
           )}
         </div>
-        )}
 
-        {/* Top 10 Holdings - PC端显示 */}
-        {!isMobile && fund?.holdings && fund.holdings.length > 0 && (
+        {/* Top 10 Holdings */}
+        {fund?.holdings && fund.holdings.length > 0 && (
           <div>
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontWeight: 600, fontSize: '16px' }}>前10重仓股票</div>
@@ -5267,20 +5251,6 @@ export default function HomePage() {
                   )}
                 </div>
               </div>
-              <input
-                className="input"
-                type="number"
-                min="10"
-                step="5"
-                value={tempSeconds}
-                onChange={(e) => setTempSeconds(Number(e.target.value))}
-                placeholder="自定义秒数"
-              />
-              {tempSeconds < 10 && (
-                <div className="error-text" style={{ marginTop: 8 }}>
-                  最小 10 秒
-                </div>
-              )}
             </div>
 
             <div className="form-group" style={{ marginBottom: 16 }}>
