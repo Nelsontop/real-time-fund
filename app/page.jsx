@@ -2141,11 +2141,6 @@ export default function HomePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [tempSeconds, setTempSeconds] = useState(300);
 
-  // 企业微信推送配置
-  const [weChatWebhookUrl, setWeChatWebhookUrl] = useState('');
-  const [weChatPushEnabled, setWeChatPushEnabled] = useState(false);
-  const [weChatDebugResult, setWeChatDebugResult] = useState(null);
-  const [weChatDebugLoading, setWeChatDebugLoading] = useState(false);
   const [fundsHistory, setFundsHistory] = useState({}); // 存储上一次的基金数据，用于检测变化
 
   // 全局刷新状态
@@ -2905,13 +2900,6 @@ export default function HomePage() {
       if (savedHoldings && typeof savedHoldings === 'object') {
         setHoldings(savedHoldings);
       }
-      // 加载企业微信推送配置
-      const savedWeChatWebhookUrl = localStorage.getItem('weChatWebhookUrl') || '';
-      const savedWeChatPushEnabled = localStorage.getItem('weChatPushEnabled') === 'true';
-      if (savedWeChatWebhookUrl) {
-        setWeChatWebhookUrl(savedWeChatWebhookUrl);
-      }
-      setWeChatPushEnabled(savedWeChatPushEnabled);
     } catch { }
   }, []);
 
@@ -3341,43 +3329,6 @@ export default function HomePage() {
           return deduped;
         });
 
-        // 检测净值变化并发送企业微信推送
-        if (weChatPushEnabled && weChatWebhookUrl) {
-          setTimeout(async () => {
-            try {
-              const newNetValues = {};
-              funds.forEach(f => {
-                if (f.netValue !== null && f.netValue !== undefined) {
-                  newNetValues[f.code] = f.netValue;
-                }
-              });
-
-              const changedFunds = [];
-              Object.keys(oldNetValues).forEach(code => {
-                const newValue = newNetValues[code];
-                const oldValue = oldNetValues[code];
-
-                if (newValue !== undefined && Math.abs(oldValue - newValue) > 0.0001) {
-                  const fund = funds.find(f => f.code === code);
-                  if (fund) {
-                    changedFunds.push({
-                      code: fund.code,
-                      name: fund.name,
-                      oldNetValue: oldValue,
-                      newNetValue: newValue,
-                      change: (newValue - oldValue).toFixed(4)
-                    });
-                  }
-                }
-              });
-
-              if (changedFunds.length > 0) {
-                await sendWeChatPush(changedFunds, funds);
-              }
-            } catch (error) {
-              console.error('检测净值变化失败:', error);
-            }
-          }, 1000);
         }
       }
     } catch (e) {
@@ -3512,9 +3463,6 @@ export default function HomePage() {
     setRefreshMs(ms);
     storageHelper.setItem('refreshMs', String(ms));
 
-    // 保存企业微信推送配置
-    localStorage.setItem('weChatWebhookUrl', weChatWebhookUrl);
-    localStorage.setItem('weChatPushEnabled', weChatPushEnabled);
 
     setSettingsOpen(false);
   };
@@ -5216,70 +5164,6 @@ export default function HomePage() {
                 ))}
               </div>
 
-              {/* 企业微信推送配置 */}
-              <div className="muted" style={{ marginBottom: 8, fontSize: '0.85rem', fontWeight: 600 }}>
-                企业微信推送
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <div className="muted" style={{ fontSize: '11px', marginBottom: 6 }}>
-                  完整 URL 格式：https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY
-                </div>
-                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    className="input"
-                    placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=..."
-                    value={weChatWebhookUrl}
-                    onChange={(e) => setWeChatWebhookUrl(e.target.value)}
-                    style={{ flex: 1, padding: '8px 12px', fontSize: '14px' }}
-                  />
-                  <label className="row" style={{ gap: 8, alignItems: 'center', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      checked={weChatPushEnabled}
-                      onChange={(e) => {
-                        setWeChatPushEnabled(e.target.checked);
-                        // 保存启用状态
-                        localStorage.setItem('weChatPushEnabled', e.target.checked);
-                      }}
-                      style={{ width: 'auto', cursor: 'pointer' }}
-                    />
-                    <span style={{ marginLeft: 4, userSelect: 'none', fontSize: '14px' }}>启用推送</span>
-                  </label>
-                </div>
-                <div className="row" style={{ gap: 8, alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    className="button"
-                    onClick={async () => {
-                      setWeChatDebugLoading(true);
-                      setWeChatDebugResult(null);
-                      const result = await debugWeChatPush(funds);
-                      setWeChatDebugResult(result);
-                      setWeChatDebugLoading(false);
-                      // 3秒后清除提示
-                      if (result.success) {
-                        setTimeout(() => setWeChatDebugResult(null), 3000);
-                      }
-                    }}
-                    disabled={weChatDebugLoading}
-                    style={{ flex: 1, fontSize: '13px', padding: '6px 12px' }}
-                  >
-                    {weChatDebugLoading ? '推送中...' : '调试推送'}
-                  </button>
-                  {weChatDebugResult && (
-                    <div style={{
-                      fontSize: '12px',
-                      color: weChatDebugResult.success ? 'var(--up)' : '#ff6b6b',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {weChatDebugResult.success ? '✓ ' : '✗ '}
-                      {weChatDebugResult.message}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
 
             <div className="form-group" style={{ marginBottom: 16 }}>
               <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>数据导出</div>
@@ -5541,197 +5425,4 @@ export default function HomePage() {
 
 
 
-async function sendWeChatPush(changedFunds, previousFunds) {
-  if (!changedFunds || changedFunds.length === 0) return;
-
-  // 检查是否在交易时间（工作日9:30-15:00）
-  const now = new Date();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
-  const day = now.getDay(); // 0=周日, 6=周六
-
-  const isWeekday = day >= 1 && day <= 5; // 周一到周五
-  const isTradingHours = isWeekday && (
-    (hour === 9 && minute >= 30) || // 9:30及之后
-    (hour > 9 && hour < 15) || // 10:00-14:59
-    (hour === 15 && minute === 0) // 15:00:00
-  );
-
-  if (!isTradingHours) {
-    console.log('非交易时间，跳过推送');
-    return;
-  }
-
-  // 从 localStorage 读取 webhook URL
-  const webhookUrl = typeof localStorage !== 'undefined'
-    ? localStorage.getItem('weChatWebhookUrl')
-    : null;
-
-  if (!webhookUrl) {
-    console.error('企业微信 Webhook URL 未配置');
-    return;
-  }
-
-  try {
-    // 筛选出涨跌幅变化超过0.1%的基金
-    const significantChanges = changedFunds.filter(f => {
-      if (!previousFunds || !f.code) return false;
-      const prevFund = previousFunds[f.code];
-      if (!prevFund) return false;
-
-      const currentChange = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
-      const prevChange = prevFund.estPricedCoverage > 0.05 ? prevFund.estGszzl : prevFund.gszzl;
-
-      // 只比较数字类型的数据
-      if (typeof currentChange !== 'number' || typeof prevChange !== 'number') {
-        return false;
-      }
-
-      const changeDiff = Math.abs(currentChange - prevChange);
-      const isSignificant = changeDiff >= 0.1; // 变化0.1%以上
-
-      if (isSignificant) {
-        console.log(`${f.name} 变化: ${prevChange?.toFixed(2)}% -> ${currentChange?.toFixed(2)}% (差异: ${changeDiff.toFixed(2)}%)`);
-      }
-
-      return isSignificant;
-    });
-
-    if (significantChanges.length === 0) {
-      console.log('没有基金涨跌幅变化超过0.1%，跳过推送');
-      return;
-    }
-
-    console.log(`推送 ${significantChanges.length} 只显著变化的基金`);
-
-    // 构建推送消息
-    const changes = significantChanges.map(f => {
-      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
-      return {
-        fund: f.name,
-        code: f.code,
-        change: changePercent
-      };
-    });
-
-    const message = {
-      msgtype: 0,  // 文本消息
-      content: JSON.stringify({
-        title: "基估宝净值变动提醒",
-        time: new Date().toLocaleString("zh-CN", { hour12: false }),
-        changes: changes
-      })
-    };
-
-    // 发送到企业微信 webhook
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(message)
-    });
-
-    if (!response.ok) {
-      throw new Error(`推送失败: ${response.status}`);
-    }
-
-    const result = await response.json();
-    console.log("企业微信推送成功:", result);
-  } catch (error) {
-    console.error("企业微信推送失败:", error);
-  }
-}
-
-// 调试推送函数 - 获取当前所有基金涨跌幅并发送到企微
-async function debugWeChatPush(currentFunds) {
-  let webhookUrl = typeof localStorage !== 'undefined'
-    ? localStorage.getItem('weChatWebhookUrl')
-    : null;
-
-  if (!webhookUrl) {
-    return { success: false, message: '请先配置企业微信 Webhook URL' };
-  }
-
-  // 修复 URL 协议：将 https:// 替换为 https://
-  webhookUrl = webhookUrl.replace(/^https:\/\//, 'https://');
-
-  try {
-    // 获取所有有涨跌幅数据的基金（使用估算涨跌幅 gszzl 或 estGszzl）
-    let fundsWithChange = currentFunds.filter(f => {
-      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
-      return typeof changePercent === 'number' && !isNaN(changePercent);
-    });
-
-    if (fundsWithChange.length === 0) {
-      return { success: false, message: '当前没有基金涨跌幅数据' };
-    }
-
-    console.log(`检查 ${currentFunds.length} 只基金，找到 ${fundsWithChange.length} 只有涨跌幅数据`);
-
-    // 按涨跌幅倒序排序（涨幅在前）
-    fundsWithChange.sort((a, b) => {
-      const changeA = a.estPricedCoverage > 0.05 ? a.estGszzl : a.gszzl;
-      const changeB = b.estPricedCoverage > 0.05 ? b.estGszzl : b.gszzl;
-      return changeB - changeA;
-    });
-
-    // 构建推送消息（每个基金一行，涨幅用🔴，跌幅用🟢）
-    const textLines = fundsWithChange.map(f => {
-      const changePercent = f.estPricedCoverage > 0.05 ? f.estGszzl : f.gszzl;
-      const icon = changePercent > 0 ? '🔴' : '🟢'; // 涨红跌绿
-      return `${icon} ${f.name}(${f.code}): ${changePercent > 0 ? '+' : ''}${changePercent?.toFixed(2)}%`;
-    });
-
-    const textContent = `📊 基估宝调试推送
-
-获取到 ${fundsWithChange.length} 只基金的涨跌幅数据（按涨跌幅倒序）：
-
-${textLines.join('\n\n')}
-
-⏰ ${new Date().toLocaleString("zh-CN", { hour12: false })}`;
-
-    console.log('准备发送推送消息:', textContent);
-
-    const message = {
-      msgtype: 'text',
-      text: {
-        content: textContent
-      }
-    };
-
-    console.log('Webhook URL:', webhookUrl);
-    console.log('发送消息格式:', JSON.stringify(message, null, 2));
-
-    // 尝试复制消息内容到剪贴板
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      try {
-        await navigator.clipboard.writeText(textContent);
-        console.log('消息内容已复制到剪贴板');
-        return {
-          success: true,
-          message: '✅ 消息已复制！请粘贴到企微客户端发送'
-        };
-      } catch (err) {
-        console.error('复制失败:', err);
-        // 复制失败则继续尝试推送
-      }
-    }
-
-    // 由于浏览器CORS限制，直接调用企业微信webhook会失败
-    // 提示用户使用命令行脚本测试
-    console.log('提示: 浏览器CORS限制，已尝试复制消息内容');
-    console.log('如需测试推送功能，请使用: bash scripts/test-wechat-push.sh <WEBHOOK_URL>');
-
-    return {
-      success: false,
-      message: '浏览器CORS限制，请使用命令行测试或手动粘贴到企微'
-    };
-  } catch (error) {
-    console.error('调试推送异常:', error);
-    return {
-      success: false,
-      message: '调试推送异常，请使用命令行测试: bash scripts/test-wechat-push.sh <URL>'
-    };
-  }
 }
