@@ -2132,6 +2132,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const timerRef = useRef(null);
+  const lastExecuteTimeRef = useRef(Date.now()); // 记录上次执行时间，用于后台标签页修正
   const refreshingRef = useRef(false);
   const isLoggingOutRef = useRef(false);
 
@@ -3175,13 +3176,40 @@ export default function HomePage() {
 
   useEffect(() => {
     if (timerRef.current) clearInterval(timerRef.current);
+    // 使用1秒轮询检查，而非直接使用 refreshMs
+    // 这样即使后台标签页被节流，也能在正确时间执行
     timerRef.current = setInterval(() => {
-      const codes = Array.from(new Set(funds.map((f) => f.code)));
-      if (codes.length) refreshAll(codes);
-    }, refreshMs);
+      const now = Date.now();
+      const elapsed = now - lastExecuteTimeRef.current;
+
+      // 只有距离上次执行 >= refreshMs 时才执行
+      if (elapsed >= refreshMs) {
+        lastExecuteTimeRef.current = now;
+        const codes = Array.from(new Set(funds.map((f) => f.code)));
+        if (codes.length) refreshAll(codes);
+      }
+    }, 1000); // 1秒检查一次
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
+  }, [funds, refreshMs]);
+
+  // 标签页可见性变化处理 - 重新可见时立即检查并修正执行时间
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // 标签页重新可见时，检查是否需要补执行
+        const elapsed = Date.now() - lastExecuteTimeRef.current;
+        if (elapsed >= refreshMs) {
+          lastExecuteTimeRef.current = Date.now();
+          const codes = Array.from(new Set(funds.map((f) => f.code)));
+          if (codes.length) refreshAll(codes);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [funds, refreshMs]);
 
   const performSearch = async (val) => {
