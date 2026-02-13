@@ -165,8 +165,6 @@ function FeedbackModal({ onClose, user }) {
   );
 }
 
-}
-
 function HoldingActionModal({ fund, onClose, onAction }) {
   return (
     <motion.div
@@ -3285,8 +3283,6 @@ export default function HomePage() {
 
           return deduped;
         });
-
-        }
       }
     } catch (e) {
       console.error(e);
@@ -3961,6 +3957,7 @@ export default function HomePage() {
       tradeModal.open ||
       !!clearConfirm ||
       donateOpen ||
+      updateModalOpen;
 
     if (isAnyModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -3986,7 +3983,8 @@ export default function HomePage() {
     tradeModal.open,
     clearConfirm,
     donateOpen,
-    updateModalOpen,
+    updateModalOpen
+  ]);
 
   useEffect(() => {
     const onKey = (ev) => {
@@ -5107,7 +5105,7 @@ export default function HomePage() {
                   </button>
                 ))}
               </div>
-
+            </div>
 
             <div className="form-group" style={{ marginBottom: 16 }}>
               <div className="muted" style={{ marginBottom: 8, fontSize: '0.8rem' }}>数据导出</div>
@@ -5369,4 +5367,3 @@ export default function HomePage() {
 
 
 
-}
