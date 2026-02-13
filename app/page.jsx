@@ -5703,14 +5703,29 @@ ${textLines.join('\n\n')}
     console.log('Webhook URL:', webhookUrl);
     console.log('发送消息格式:', JSON.stringify(message, null, 2));
 
+    // 尝试复制消息内容到剪贴板
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      try {
+        await navigator.clipboard.writeText(textContent);
+        console.log('消息内容已复制到剪贴板');
+        return {
+          success: true,
+          message: '✅ 消息已复制！请粘贴到企微客户端发送'
+        };
+      } catch (err) {
+        console.error('复制失败:', err);
+        // 复制失败则继续尝试推送
+      }
+    }
+
     // 由于浏览器CORS限制，直接调用企业微信webhook会失败
     // 提示用户使用命令行脚本测试
-    console.log('提示: 浏览器CORS限制，请使用命令行脚本测试推送功能');
-    console.log('测试命令: bash scripts/test-wechat-push.sh <WEBHOOK_URL>');
+    console.log('提示: 浏览器CORS限制，已尝试复制消息内容');
+    console.log('如需测试推送功能，请使用: bash scripts/test-wechat-push.sh <WEBHOOK_URL>');
 
     return {
       success: false,
-      message: '浏览器CORS限制，请使用命令行测试: bash scripts/test-wechat-push.sh <URL>'
+      message: '浏览器CORS限制，请使用命令行测试或手动粘贴到企微'
     };
   } catch (error) {
     console.error('调试推送异常:', error);
