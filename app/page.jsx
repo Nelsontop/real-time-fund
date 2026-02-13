@@ -5703,38 +5703,20 @@ ${textLines.join('\n\n')}
     console.log('Webhook URL:', webhookUrl);
     console.log('发送消息格式:', JSON.stringify(message, null, 2));
 
-    // 使用 CORS 代理发送到企业微信 webhook
-    // 企业微信 API 不支持浏览器直接调用（CORS限制）
-    const corsProxyUrl = `https://corsproxy.io/?${encodeURIComponent(webhookUrl)}`;
-    console.log('使用 CORS 代理:', corsProxyUrl);
+    // 由于浏览器CORS限制，直接调用企业微信webhook会失败
+    // 提示用户使用命令行脚本测试
+    console.log('提示: 浏览器CORS限制，请使用命令行脚本测试推送功能');
+    console.log('测试命令: bash scripts/test-wechat-push.sh <WEBHOOK_URL>');
 
-    const response = await fetch(corsProxyUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest"
-      },
-      body: JSON.stringify(message)
-    });
-
-    console.log('响应状态:', response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('错误响应:', errorText);
-      return { success: false, message: `推送失败: ${response.status}` };
-    }
-
-    const result = await response.json();
-    console.log('企微响应:', result);
-
-    if (result.errcode !== 0) {
-      return { success: false, message: `企微错误(${result.errcode}): ${result.errmsg}` };
-    }
-
-    return { success: true, message: `成功推送 ${fundsWithChange.length} 只基金数据` };
+    return {
+      success: false,
+      message: '浏览器CORS限制，请使用命令行测试: bash scripts/test-wechat-push.sh <URL>'
+    };
   } catch (error) {
-    console.error('推送异常:', error);
-    return { success: false, message: `CORS错误: 浏览器无法直接调用企微API。请使用测试脚本: bash scripts/test-wechat-push.sh <URL>` };
+    console.error('调试推送异常:', error);
+    return {
+      success: false,
+      message: '调试推送异常，请使用命令行测试: bash scripts/test-wechat-push.sh <URL>'
+    };
   }
 }
