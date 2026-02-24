@@ -2611,6 +2611,8 @@ export default function HomePage() {
     }, 3000);
   };
 
+  const isFundFetchTimeoutError = (err) => err?.message === '基金数据请求超时';
+
   const handleOpenLogin = () => {
     setUserMenuOpen(false);
     if (!isSupabaseConfigured) {
@@ -3202,6 +3204,9 @@ export default function HomePage() {
           newFunds.push(data);
         } catch (e) {
           console.error(`添加基金 ${f.CODE} 失败`, e);
+          if (isFundFetchTimeoutError(e)) {
+            showToast(`${f.CODE} 获取超时，请稍后重试`, 'error');
+          }
         }
       }
 
@@ -3243,6 +3248,9 @@ export default function HomePage() {
           updated.push(data);
         } catch (e) {
           console.error(`刷新基金 ${c} 失败`, e);
+          if (isFundFetchTimeoutError(e)) {
+            showToast(`刷新 ${c} 超时，请稍后重试`, 'error');
+          }
           // 失败时从当前 state 中寻找旧数据
           setFunds(prev => {
             const old = prev.find((f) => f.code === c);
@@ -3339,6 +3347,9 @@ export default function HomePage() {
           const data = await fetchFundData(c);
           newFunds.push(data);
         } catch (err) {
+          if (isFundFetchTimeoutError(err)) {
+            showToast(`${c} 获取超时，请稍后重试`, 'error');
+          }
           failures.push({ code: c, name: nameMap[c] });
         }
       }
@@ -5335,7 +5346,6 @@ export default function HomePage() {
     </div>
   );
 }
-
 
 
 
