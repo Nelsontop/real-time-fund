@@ -2064,11 +2064,11 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
                 if (hasHolding) {
                   // 如果有持仓，提示确认
                   if (confirm(`基金 "${fund.name}" 存在持仓记录。删除后将移除该基金及其持仓数据，是否继续？`)) {
-                    onDelete(fund);
+                    onDelete(fund.code);
                     onClose();
                   }
                 } else {
-                  onDelete(fund);
+                  onDelete(fund.code);
                   onClose();
                 }
               }}
@@ -4499,7 +4499,6 @@ export default function HomePage() {
                         <div className="table-header-cell text-right">今日涨跌</div>
                         <div className="table-header-cell text-right">昨日涨跌幅</div>
                         <div className="table-header-cell text-right">当日盈亏</div>
-                        <div className="table-header-cell text-right">当日收益率</div>
                         <div className="table-header-cell text-right">持仓金额</div>
                         <div className="table-header-cell text-right">持有收益</div>
                         <div className="table-header-cell text-right">估值时间</div>
@@ -4647,25 +4646,6 @@ export default function HomePage() {
                                       >
                                         {hasProfit
                                           ? `${profitValue > 0 ? '+' : profitValue < 0 ? '-' : ''}¥${Math.abs(profitValue).toFixed(2)}`
-                                          : ''}
-                                      </span>
-                                    </div>
-                                  );
-                                })()}
-                                {!isMobile && (() => {
-                                  const holding = holdings[f.code];
-                                  const profit = getHoldingProfit(f, holding);
-                                  const rateValue = profit ? profit.profitTodayRate : null;
-                                  const hasRate = rateValue !== null;
-
-                                  return (
-                                    <div className="table-cell text-right profit-rate-cell">
-                                      <span
-                                        className={hasRate ? (rateValue > 0 ? 'up' : rateValue < 0 ? 'down' : '') : 'muted'}
-                                        style={{ fontWeight: 700 }}
-                                      >
-                                        {hasRate
-                                          ? `${rateValue > 0 ? '+' : rateValue < 0 ? '-' : ''}${rateValue.toFixed(2)}%`
                                           : ''}
                                       </span>
                                     </div>
@@ -4829,14 +4809,6 @@ export default function HomePage() {
                                             {profit.profitToday > 0 ? '+' : profit.profitToday < 0 ? '-' : ''}¥{Math.abs(profit.profitToday).toFixed(2)}
                                           </span>
                                         </div>
-                                        {profit.profitTodayRate !== null && (
-                                          <div className="stat" style={{ flexDirection: 'column', gap: 4 }}>
-                                            <span className="label">当日收益率</span>
-                                            <span className={`value ${profit.profitTodayRate > 0 ? 'up' : profit.profitTodayRate < 0 ? 'down' : ''}`}>
-                                              {profit.profitTodayRate > 0 ? '+' : profit.profitTodayRate < 0 ? '-' : ''}{profit.profitTodayRate.toFixed(2)}%
-                                            </span>
-                                          </div>
-                                        )}
                                         {profit.profitTotal !== null && (
                                           <div
                                             className="stat"
