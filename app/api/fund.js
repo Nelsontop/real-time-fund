@@ -162,10 +162,47 @@ export const fetchFundData = async (c) => {
     const scriptGz = document.createElement('script');
     scriptGz.src = gzUrl;
     const originalJsonpgz = window.jsonpgz;
-    window.jsonpgz = (json) => {
+    let settled = false;
+    let timeoutId = null;
+
+    const cleanupScript = () => {
+      if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
+    };
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
       window.jsonpgz = originalJsonpgz;
+      cleanupScript();
+    };
+
+    const finishResolve = (data) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(data);
+    };
+
+    const finishReject = (err) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(err);
+    };
+
+    timeoutId = setTimeout(() => {
+      window.jsonpgz = originalJsonpgz;
+      cleanupScript();
+      if (!settled) {
+        finishReject(new Error('基金数据请求超时'));
+      }
+    }, 5000);
+
+    window.jsonpgz = (json) => {
       if (!json || typeof json !== 'object') {
-        fetchFundDataFallback(c).then(resolve).catch(reject);
+        fetchFundDataFallback(c).then(finishResolve).catch(finishReject);
         return;
       }
       const gszzlNum = Number(json.gszzl);
@@ -314,18 +351,13 @@ export const fetchFundData = async (c) => {
             gzData.zzl = tData.zzl;
           }
         }
-        resolve({ ...gzData, holdings });
+        finishResolve({ ...gzData, holdings });
       });
     };
     scriptGz.onerror = () => {
-      window.jsonpgz = originalJsonpgz;
-      if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
-      reject(new Error('基金数据加载失败'));
+      finishReject(new Error('基金数据加载失败'));
     };
     document.body.appendChild(scriptGz);
-    setTimeout(() => {
-      if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
-    }, 5000);
   });
 };
 
