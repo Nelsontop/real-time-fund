@@ -21,13 +21,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Standard development cycle
 docker compose up -d --build               # Build and start
 # Manual testing in browser at http://localhost:3000
-docker compose logs -f                     # Check logs if needed
+docker compose logs -f app                 # Check logs (use 'app' service name)
+docker compose ps                          # Check container health status
 docker compose down                        # Stop when done
 git add . && git commit -m "feat: ..."     # Commit after successful test
 git push                                   # Push only after all checks pass
 ```
 
 **Important**: After code changes, always rebuild with `docker compose up -d --build` to ensure the latest code is running.
+
+**Hot Reloading**: Development mode supports hot reloading - changes to `app/page.jsx` and other source files will automatically reflect in the browser without manual restart.
 
 ## Project Overview
 
@@ -45,7 +48,7 @@ git push                                   # Push only after all checks pass
 ```bash
 # Docker Compose (recommended)
 docker compose up -d --build             # Build and start with health check
-docker compose logs -f                   # View logs
+docker compose logs -f app               # View logs (app service)
 docker compose ps                        # Check status
 docker compose restart                   # Restart container
 docker compose down                      # Stop and remove
@@ -59,6 +62,12 @@ docker stop fund && docker rm fund
 # Testing tools
 bash scripts/test-backup.sh              # Test backup functionality
 node scripts/validate-backup.js <file>  # Validate backup file format
+
+# E2E Testing (Playwright)
+npx playwright test                      # Run all E2E tests
+npx playwright test --ui                 # Run with UI mode
+npx playwright test tests/e2e/auth/login.spec.ts  # Run specific test file
+npx playwright show-report               # Open HTML test report
 ```
 
 ## Testing Tools
@@ -91,15 +100,20 @@ npx playwright test
 docker compose down
 ```
 
-Playwright configuration:
+Playwright configuration (`playwright.config.ts`):
 - Base URL: `http://localhost:3000` (configurable via `BASE_URL` env var)
+- Test directory: `tests/e2e/`
 - Reports: HTML + JSON output to `playwright-report/` and `playwright-results.json`
 - Workers: 1 (to avoid race conditions)
+- Retries: 2 in CI, 0 locally
 - Screenshots/videos: Captured on failure
+- Action timeout: 10s, Navigation timeout: 30s
 
 ## Node Version Requirement
 
 Node.js >= 20.9.0 (see package.json engines field). Docker uses Node 22.
+
+**Important**: When running `npm install`, always use `--legacy-peer-deps` flag due to dependency resolution requirements.
 
 ## Architecture
 
@@ -109,9 +123,17 @@ Node.js >= 20.9.0 (see package.json engines field). Docker uses Node 22.
   - **FundDetailModal**: Fund detail popup with historical charts (7d, 1m, 3m, 6m, 12m), holdings, and remove-from-group button
 - **Layout**: `app/layout.jsx` - Root layout with Google Analytics integration
 - **Styles**: `app/globals.css` - Glassmorphism design system with CSS custom properties
-- **Components**: `app/components/` - Reusable UI components (AnalyticsGate, Announcement)
+- **Components**: `app/components/` - Reusable UI components
+  - `Icons.jsx`: Icon components (PlusIcon, TrashIcon, etc.)
+  - `Common.jsx`: Shared UI components
+  - `Announcement.jsx`: Application announcement banner
+  - `AnalyticsGate.jsx`: Conditional Google Analytics loading
 - **Supabase Client**: `app/lib/supabase.js` - Authentication and cloud sync configuration
 - **Chart Library**: `recharts` (v3.7.0) - Historical net value trend visualization
+
+**Build Configuration** (`next.config.js`):
+- `reactStrictMode: true` - Enables strict mode for better error detection
+- `reactCompiler: true` - React Compiler optimization for automatic memoization
 
 ### Data Fetching Strategy (JSONP)
 
@@ -146,9 +168,18 @@ The app uses React hooks for state management with localStorage persistence:
 - `refreshMs`: Auto-refresh interval (5-300 seconds)
 
 **Data Storage**: All data stored in browser localStorage (not on server)
-- Container restart/delete does NOT lose data
+- Container restart/delete does NOT lose data (data lives in browser, not container)
 - Clearing browser cache DOES lose data
 - Use export/import or cloud sync for backup
+
+**LocalStorage Schema**:
+- `realtime-fund-funds`: Fund list with valuation data
+- `realtime-fund-holdings`: User holdings with amounts and cost
+- `realtime-fund-favorites`: Favorite fund codes (Set)
+- `realtime-fund-groups`: Custom fund groups
+- `realtime-fund-viewMode`: Table/Card view preference
+- `realtime-fund-refreshMs`: Auto-refresh interval (ms)
+- `realtime-fund-announcement`: Announcement banner state
 
 ### Recent Improvements
 
@@ -200,6 +231,18 @@ The app uses React hooks for state management with localStorage persistence:
 - `f5e45b2`: fix: 优化登录成功提示逻辑
 - `9f353d9`: fix: 移除 SIGNED_IN 事件的登录成功提示
 
+#### 2026-02-24: 定时推送优化
+
+**问题修复**:
+1. **定时推送添加时间限制**：限制推送时段为 9:00-15:00 (交易时间)
+2. **基金间空行分隔**：增强推送消息可读性
+3. **企微推送 CORS 错误修复**：企业微信 Webhook 推送修复跨域问题
+
+**技术细节**:
+- 企业微信 Webhook 使用 fetch API 直接调用
+- 推送时间验证：`currentHour >= 9 && currentHour < 15`
+- 基金列表格式化：基金间添加换行符 `\n\n`
+
 ### Supabase Integration
 
 **Authentication**: Email-based OTP (one-time password) flow
@@ -244,9 +287,11 @@ Key functions:
 ### Static Export Configuration
 
 The app is configured for static export (`next.config.js`):
-- `reactStrictMode: true`
+- `reactStrictMode: true` - Enables strict mode
+- `reactCompiler: true` - React Compiler optimization
 - No API routes (pure client-side)
 - Build outputs to `./out` directory for GitHub Pages deployment
+- Static export allows GitHub Pages hosting without server-side requirements
 
 ## Key Patterns & Conventions
 
@@ -309,6 +354,33 @@ See `docs/DATA_PERSISTENCE.md` for detailed backup instructions.
 2. **Data lost after clearing cache**: Use import feature to restore from backup
 3. **Modal not opening**: Check browser console for errors, ensure recharts is installed
 4. **Historical data missing**: May be API limitation, check console for fetch errors
+5. **Container not starting**: Check `docker compose logs` for build errors, ensure Node 22 is available
+6. **Hot reload not working**: Ensure running in development mode, not production build
+
+## Data Fetching APIs
+
+### Fund Valuation (实时估值)
+- **Endpoint**: `https://fundgz.1234567.com.cn/js/{code}.js`
+- **Method**: Script tag injection
+- **Callback**: `jsonpgz`
+- **Rate Limit**: Avoid excessive requests, use built-in refresh interval
+
+### Fund Search (基金搜索)
+- **Endpoint**: `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashjx`
+- **Method**: JSONP
+- **Parameters**: `keyword`, `callback`
+- **Debounce**: 300ms to avoid rate limiting
+
+### Historical Net Value (历史净值)
+- **Endpoint**: `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz`
+- **Method**: Script tag injection with pagination
+- **Parameters**: `code`, `page`, `perpage`, `sdate`, `edate`, `rt`
+- **Pagination**: 500 items per page, max 20 pages
+
+### Stock Quotes (股票行情)
+- **Endpoint**: Tencent Finance API
+- **Method**: Script tag injection
+- **Used for**: Top 10 holdings real-time quotes
 
 ## Documentation Files
 
