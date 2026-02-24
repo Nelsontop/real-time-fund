@@ -2064,11 +2064,11 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
                 if (hasHolding) {
                   // 如果有持仓，提示确认
                   if (confirm(`基金 "${fund.name}" 存在持仓记录。删除后将移除该基金及其持仓数据，是否继续？`)) {
-                    onDelete(fund);
+                    onDelete(fund.code);
                     onClose();
                   }
                 } else {
-                  onDelete(fund);
+                  onDelete(fund.code);
                   onClose();
                 }
               }}
