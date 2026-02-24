@@ -31,13 +31,101 @@ export const loadScript = (url) => {
   });
 };
 
+export const loadJsonp = ({ url, callbackParam = 'callback', prefix = 'jsonp_', timeoutMs = 5000 }) => {
+  return new Promise((resolve, reject) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined' || !document.body) {
+      reject(new Error('无浏览器环境'));
+      return;
+    }
+
+    const callbackName = `${prefix}${Date.now()}_${Math.random().toString(36).slice(2)}`;
+    const hasQuery = url.includes('?');
+    const finalUrl = callbackParam
+      ? `${url}${hasQuery ? '&' : '?'}${encodeURIComponent(callbackParam)}=${encodeURIComponent(callbackName)}`
+      : url;
+    const script = document.createElement('script');
+    script.src = finalUrl;
+    script.async = true;
+
+    let timer = null;
+    let settled = false;
+    const cleanup = () => {
+      if (timer) clearTimeout(timer);
+      delete window[callbackName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+    const done = (handler) => (payload) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      handler(payload);
+    };
+
+    window[callbackName] = done(resolve);
+    script.onerror = done(() => reject(new Error('数据加载失败')));
+    timer = setTimeout(done(() => reject(new Error('数据加载超时'))), timeoutMs);
+    document.body.appendChild(script);
+  });
+};
+
+let apidataQueue = Promise.resolve();
+const withApidataLock = (task) => {
+  const run = apidataQueue.then(task, task);
+  apidataQueue = run.catch(() => {});
+  return run;
+};
+
+const loadEastmoneyApidata = async (url) => withApidataLock(async () => {
+  await loadScript(url);
+  const result = window.apidata ? { ...window.apidata } : null;
+  delete window.apidata;
+  return result;
+});
+
+let jsonpgzQueue = Promise.resolve();
+const withJsonpgzLock = (task) => {
+  const run = jsonpgzQueue.then(task, task);
+  jsonpgzQueue = run.catch(() => {});
+  return run;
+};
+
+const loadFundGzData = async (code, timeoutMs = 5000) => withJsonpgzLock(() => new Promise((resolve, reject) => {
+  if (typeof window === 'undefined' || typeof document === 'undefined' || !document.body) {
+    reject(new Error('无浏览器环境'));
+    return;
+  }
+  const url = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
+  const script = document.createElement('script');
+  script.src = url;
+  script.async = true;
+  const originalJsonpgz = window.jsonpgz;
+  let timer = null;
+  let settled = false;
+  const cleanup = () => {
+    if (timer) clearTimeout(timer);
+    window.jsonpgz = originalJsonpgz;
+    if (document.body.contains(script)) document.body.removeChild(script);
+  };
+  const done = (handler) => (payload) => {
+    if (settled) return;
+    settled = true;
+    cleanup();
+    handler(payload);
+  };
+
+  window.jsonpgz = done(resolve);
+  script.onerror = done(() => reject(new Error('基金数据加载失败')));
+  timer = setTimeout(done(() => reject(new Error('基金数据加载超时'))), timeoutMs);
+  document.body.appendChild(script);
+}));
+
 export const fetchFundNetValue = async (code, date) => {
   if (typeof window === 'undefined') return null;
   const url = `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code=${code}&page=1&per=1&sdate=${date}&edate=${date}`;
   try {
-    await loadScript(url);
-    if (window.apidata && window.apidata.content) {
-      const content = window.apidata.content;
+    const apidata = await loadEastmoneyApidata(url);
+    if (apidata && apidata.content) {
+      const content = apidata.content;
       if (content.includes('暂无数据')) return null;
       const rows = content.split('<tr>');
       for (const row of rows) {
@@ -77,40 +165,21 @@ export const fetchFundDataFallback = async (c) => {
     throw new Error('无浏览器环境');
   }
   return new Promise(async (resolve, reject) => {
-    const searchCallbackName = `SuggestData_fallback_${Date.now()}`;
-    const searchUrl = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(c)}&callback=${searchCallbackName}&_=${Date.now()}`;
+    const searchUrl = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(c)}&_=${Date.now()}`;
     let fundName = '';
     try {
-      await new Promise((resSearch, rejSearch) => {
-        window[searchCallbackName] = (data) => {
-          if (data && data.Datas && data.Datas.length > 0) {
-            const found = data.Datas.find(d => d.CODE === c);
-            if (found) {
-              fundName = found.NAME || found.SHORTNAME || '';
-            }
-          }
-          delete window[searchCallbackName];
-          resSearch();
-        };
-        const script = document.createElement('script');
-        script.src = searchUrl;
-        script.async = true;
-        script.onload = () => {
-          if (document.body.contains(script)) document.body.removeChild(script);
-        };
-        script.onerror = () => {
-          if (document.body.contains(script)) document.body.removeChild(script);
-          delete window[searchCallbackName];
-          rejSearch(new Error('搜索接口失败'));
-        };
-        document.body.appendChild(script);
-        setTimeout(() => {
-          if (window[searchCallbackName]) {
-            delete window[searchCallbackName];
-            resSearch();
-          }
-        }, 3000);
+      const data = await loadJsonp({
+        url: searchUrl,
+        callbackParam: 'callback',
+        prefix: 'SuggestData_fallback_',
+        timeoutMs: 3000
       });
+      if (data && data.Datas && data.Datas.length > 0) {
+        const found = data.Datas.find(d => d.CODE === c);
+        if (found) {
+          fundName = found.NAME || found.SHORTNAME || '';
+        }
+      }
     } catch (e) {
     }
     const tUrl = `https://qt.gtimg.cn/q=jj${c}`;
@@ -158,12 +227,8 @@ export const fetchFundData = async (c) => {
     throw new Error('无浏览器环境');
   }
   return new Promise(async (resolve, reject) => {
-    const gzUrl = `https://fundgz.1234567.com.cn/js/${c}.js?rt=${Date.now()}`;
-    const scriptGz = document.createElement('script');
-    scriptGz.src = gzUrl;
-    const originalJsonpgz = window.jsonpgz;
-    window.jsonpgz = (json) => {
-      window.jsonpgz = originalJsonpgz;
+    try {
+      const json = await loadFundGzData(c);
       if (!json || typeof json !== 'object') {
         fetchFundDataFallback(c).then(resolve).catch(reject);
         return;
@@ -204,9 +269,9 @@ export const fetchFundData = async (c) => {
       });
       const holdingsPromise = new Promise((resolveH) => {
         const holdingsUrl = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${c}&topline=10&year=&month=&_=${Date.now()}`;
-        loadScript(holdingsUrl).then(async () => {
+        loadEastmoneyApidata(holdingsUrl).then(async (holdingsData) => {
           let holdings = [];
-          const html = window.apidata?.content || '';
+          const html = holdingsData?.content || '';
           const headerRow = (html.match(/<thead[\s\S]*?<tr[\s\S]*?<\/tr>[\s\S]*?<\/thead>/i) || [])[0] || '';
           const headerCells = (headerRow.match(/<th[\s\S]*?>([\s\S]*?)<\/th>/gi) || []).map(th => th.replace(/<[^>]*>/g, '').trim());
           let idxCode = -1, idxName = -1, idxWeight = -1;
@@ -316,50 +381,28 @@ export const fetchFundData = async (c) => {
         }
         resolve({ ...gzData, holdings });
       });
-    };
-    scriptGz.onerror = () => {
-      window.jsonpgz = originalJsonpgz;
-      if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
-      reject(new Error('基金数据加载失败'));
-    };
-    document.body.appendChild(scriptGz);
-    setTimeout(() => {
-      if (document.body.contains(scriptGz)) document.body.removeChild(scriptGz);
-    }, 5000);
+    } catch (e) {
+      reject(e);
+    }
   });
 };
 
 export const searchFunds = async (val) => {
   if (!val.trim()) return [];
   if (typeof window === 'undefined' || typeof document === 'undefined') return [];
-  const callbackName = `SuggestData_${Date.now()}`;
-  const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(val)}&callback=${callbackName}&_=${Date.now()}`;
-  return new Promise((resolve, reject) => {
-    window[callbackName] = (data) => {
-      let results = [];
-      if (data && data.Datas) {
-        results = data.Datas.filter(d =>
-          d.CATEGORY === 700 ||
-          d.CATEGORY === '700' ||
-          d.CATEGORYDESC === '基金'
-        );
-      }
-      delete window[callbackName];
-      resolve(results);
-    };
-    const script = document.createElement('script');
-    script.src = url;
-    script.async = true;
-    script.onload = () => {
-      if (document.body.contains(script)) document.body.removeChild(script);
-    };
-    script.onerror = () => {
-      if (document.body.contains(script)) document.body.removeChild(script);
-      delete window[callbackName];
-      reject(new Error('搜索请求失败'));
-    };
-    document.body.appendChild(script);
+  const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(val)}&_=${Date.now()}`;
+  const data = await loadJsonp({
+    url,
+    callbackParam: 'callback',
+    prefix: 'SuggestData_',
+    timeoutMs: 5000
   });
+  if (!data || !data.Datas) return [];
+  return data.Datas.filter(d =>
+    d.CATEGORY === 700 ||
+    d.CATEGORY === '700' ||
+    d.CATEGORYDESC === '基金'
+  );
 };
 
 export const fetchShanghaiIndexDate = async () => {
@@ -422,13 +465,13 @@ export const fetchFundHistoryNetValue = async (code, endDate, monthsOrDays, unit
     while (true) {
       const url = `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code=${code}&page=${page}&per=${perPage}&sdate=${startDate}&edate=${endDateStr}`;
 
-      await loadScript(url);
+      const apidata = await loadEastmoneyApidata(url);
 
-      if (!window.apidata || !window.apidata.content) {
+      if (!apidata || !apidata.content) {
         break;
       }
 
-      const content = window.apidata.content;
+      const content = apidata.content;
       if (content.includes('暂无数据')) {
         // 第一页就没数据，返回空
         if (page === 1) return [];
