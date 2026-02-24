@@ -332,10 +332,23 @@ export const fetchFundData = async (c) => {
 export const searchFunds = async (val) => {
   if (!val.trim()) return [];
   if (typeof window === 'undefined' || typeof document === 'undefined') return [];
-  const callbackName = `SuggestData_${Date.now()}`;
+  const callbackName = `SuggestData_${Date.now()}_${Math.random().toString(36).slice(2)}`;
   const url = `https://fundsuggest.eastmoney.com/FundSearch/api/FundSearchAPI.ashx?m=1&key=${encodeURIComponent(val)}&callback=${callbackName}&_=${Date.now()}`;
   return new Promise((resolve, reject) => {
+    let timeoutId = null;
+    let settled = false;
+    const cleanup = (keepCallback = false) => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      if (!keepCallback) delete window[callbackName];
+      if (document.body.contains(script)) document.body.removeChild(script);
+    };
+
     window[callbackName] = (data) => {
+      if (settled) return;
+      settled = true;
       let results = [];
       if (data && data.Datas) {
         results = data.Datas.filter(d =>
@@ -344,21 +357,29 @@ export const searchFunds = async (val) => {
           d.CATEGORYDESC === '基金'
         );
       }
-      delete window[callbackName];
+      cleanup();
       resolve(results);
     };
     const script = document.createElement('script');
     script.src = url;
     script.async = true;
     script.onload = () => {
-      if (document.body.contains(script)) document.body.removeChild(script);
+      cleanup(true);
     };
     script.onerror = () => {
-      if (document.body.contains(script)) document.body.removeChild(script);
-      delete window[callbackName];
+      if (settled) return;
+      settled = true;
+      cleanup();
       reject(new Error('搜索请求失败'));
     };
     document.body.appendChild(script);
+
+    timeoutId = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error('搜索请求超时'));
+    }, 5000);
   });
 };
 

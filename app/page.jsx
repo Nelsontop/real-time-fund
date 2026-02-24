@@ -2148,6 +2148,7 @@ export default function HomePage() {
   // 搜索相关状态
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [searchError, setSearchError] = useState('');
   const [selectedFunds, setSelectedFunds] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const searchTimeoutRef = useRef(null);
@@ -3158,14 +3159,18 @@ export default function HomePage() {
   const performSearch = async (val) => {
     if (!val.trim()) {
       setSearchResults([]);
+      setSearchError('');
       return;
     }
     setIsSearching(true);
+    setSearchError('');
     try {
       const fundsOnly = await searchFunds(val);
       setSearchResults(fundsOnly);
     } catch (e) {
       console.error('搜索失败', e);
+      setSearchResults([]);
+      setSearchError('搜索失败，暂无结果，可重试');
     } finally {
       setIsSearching(false);
     }
@@ -3174,6 +3179,7 @@ export default function HomePage() {
   const handleSearchInput = (e) => {
     const val = e.target.value;
     setSearchTerm(val);
+    setSearchError('');
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
     searchTimeoutRef.current = setTimeout(() => performSearch(val), 300);
   };
@@ -4260,7 +4266,23 @@ export default function HomePage() {
                       })}
                     </div>
                   ) : searchTerm.trim() && !isSearching ? (
-                    <div className="no-results muted">未找到相关基金</div>
+                    <div className="no-results muted">
+                      {searchError ? (
+                        <>
+                          <span>{searchError}</span>
+                          <button
+                            type="button"
+                            className="button"
+                            style={{ marginLeft: 8, padding: '4px 10px' }}
+                            onClick={() => performSearch(searchTerm)}
+                          >
+                            重试
+                          </button>
+                        </>
+                      ) : (
+                        '未找到相关基金'
+                      )}
+                    </div>
                   ) : null}
                 </motion.div>
               )}
@@ -5335,7 +5357,6 @@ export default function HomePage() {
     </div>
   );
 }
-
 
 
 
