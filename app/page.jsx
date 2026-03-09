@@ -1842,6 +1842,78 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
     return ((last - first) / first) * 100;
   }, [currentData]);
 
+  const yearlyInsight = useMemo(() => {
+    const annualData = historyData['12m'] || [];
+    if (annualData.length < 20) return null;
+
+    const first = annualData[0]?.value;
+    const last = annualData[annualData.length - 1]?.value;
+    if (!first || !last) return null;
+
+    const oneYearChange = ((last - first) / first) * 100;
+    const values = annualData.map(item => item.value).filter(v => typeof v === 'number' && !Number.isNaN(v));
+    if (values.length < 20) return null;
+
+    const peak = Math.max(...values);
+    const trough = Math.min(...values);
+    const drawdown = peak > 0 ? ((trough - peak) / peak) * 100 : 0;
+
+    const returns = [];
+    for (let i = 1; i < values.length; i++) {
+      const prev = values[i - 1];
+      const curr = values[i];
+      if (prev > 0) {
+        returns.push(((curr - prev) / prev) * 100);
+      }
+    }
+    if (!returns.length) return null;
+
+    const avgReturn = returns.reduce((acc, r) => acc + r, 0) / returns.length;
+    const variance = returns.reduce((acc, r) => acc + Math.pow(r - avgReturn, 2), 0) / returns.length;
+    const volatility = Math.sqrt(variance);
+
+    const recentWindow = values.slice(-20);
+    const recentStart = recentWindow[0];
+    const recentEnd = recentWindow[recentWindow.length - 1];
+    const shortTermChange = recentStart > 0 ? ((recentEnd - recentStart) / recentStart) * 100 : 0;
+
+    let score = 5;
+    if (oneYearChange > 20) score += 2;
+    else if (oneYearChange > 8) score += 1;
+    else if (oneYearChange < -12) score -= 2;
+    else if (oneYearChange < -5) score -= 1;
+
+    if (shortTermChange > 2) score += 1;
+    else if (shortTermChange < -2) score -= 1;
+
+    if (volatility < 0.8) score += 1;
+    else if (volatility > 1.8) score -= 1;
+
+    if (drawdown > -12) score += 1;
+    else if (drawdown < -25) score -= 1;
+
+    score = Math.max(1, Math.min(10, score));
+
+    let advice = '观望';
+    if (score >= 8) advice = '偏买入';
+    else if (score >= 6) advice = '可分批买入';
+    else if (score <= 3) advice = '偏卖出/减仓';
+    else if (score <= 5) advice = '谨慎持有';
+
+    const trend = oneYearChange > 0 ? '整体上行' : oneYearChange < 0 ? '整体下行' : '横盘震荡';
+    const risk = volatility > 1.8 ? '波动较大' : volatility < 0.8 ? '波动较小' : '波动中等';
+
+    return {
+      score,
+      advice,
+      trend,
+      risk,
+      oneYearChange,
+      shortTermChange,
+      drawdown,
+    };
+  }, [historyData]);
+
   // Format chart data
   const chartData = currentData.map(d => ({
     date: dayjs(d.date).format('MM/DD'),
@@ -2009,6 +2081,30 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
                   </LineChart>
                 </ResponsiveContainer>
               </div>
+
+              {yearlyInsight && (
+                <div className="glass" style={{ marginTop: 16, padding: '14px 16px', borderRadius: 10, background: 'rgba(34,211,238,0.08)', border: '1px solid rgba(34,211,238,0.2)' }}>
+                  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <span style={{ fontWeight: 600 }}>一年走势智能总结</span>
+                    <span className={`badge ${yearlyInsight.score >= 7 ? 'up' : yearlyInsight.score <= 4 ? 'down' : ''}`}>
+                      建议评分：{yearlyInsight.score}/10
+                    </span>
+                  </div>
+                  <div className="muted" style={{ fontSize: '13px', lineHeight: 1.7 }}>
+                    近一年净值{yearlyInsight.trend}（{yearlyInsight.oneYearChange > 0 ? '+' : ''}{yearlyInsight.oneYearChange.toFixed(2)}%），最近约1个月变动
+                    {yearlyInsight.shortTermChange > 0 ? '+' : ''}{yearlyInsight.shortTermChange.toFixed(2)}%，最大回撤约 {yearlyInsight.drawdown.toFixed(2)}%，{yearlyInsight.risk}。
+                  </div>
+                  <div style={{ marginTop: 8, fontSize: '14px', fontWeight: 600 }}>
+                    当日操作建议：
+                    <span className={yearlyInsight.score >= 7 ? 'up' : yearlyInsight.score <= 4 ? 'down' : ''} style={{ marginLeft: 6 }}>
+                      {yearlyInsight.advice}
+                    </span>
+                  </div>
+                  <div className="muted" style={{ fontSize: '11px', marginTop: 6 }}>
+                    * 仅基于历史净值曲线统计，不构成投资建议。
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -5335,7 +5431,6 @@ export default function HomePage() {
     </div>
   );
 }
-
 
 
 
