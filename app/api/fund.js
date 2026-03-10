@@ -57,6 +57,34 @@ export const fetchFundNetValue = async (code, date) => {
   }
 };
 
+const fetchEastmoneyLatestNav = async (code) => {
+  if (typeof window === 'undefined') return null;
+  const url = `https://fundf10.eastmoney.com/F10DataApi.aspx?type=lsjz&code=${code}&page=1&per=1`;
+  try {
+    await loadScript(url);
+    const content = window.apidata?.content || '';
+    if (!content || content.includes('暂无数据')) return null;
+    const row = (content.match(/<tr[\s\S]*?<\/tr>/i) || [])[0] || '';
+    if (!row) return null;
+    const cells = row.match(/<td[^>]*>(.*?)<\/td>/g) || [];
+    if (cells.length < 4) return null;
+
+    const parseCell = (cell) => cell.replace(/<[^>]+>/g, '').trim();
+    const jzrq = parseCell(cells[0]);
+    const dwjz = parseCell(cells[1]);
+    const zzlRaw = parseCell(cells[3]).replace('%', '');
+    const zzl = Number(zzlRaw);
+
+    return {
+      jzrq,
+      dwjz,
+      zzl: Number.isFinite(zzl) ? zzl : null
+    };
+  } catch (e) {
+    return null;
+  }
+};
+
 export const fetchSmartFundNetValue = async (code, startDate) => {
   const today = nowInTz().startOf('day');
   let current = toTz(startDate).startOf('day');
@@ -306,7 +334,7 @@ export const fetchFundData = async (c) => {
           resolveH(holdings);
         }).catch(() => resolveH([]));
       });
-      Promise.all([tencentPromise, holdingsPromise]).then(([tData, holdings]) => {
+      Promise.all([tencentPromise, holdingsPromise]).then(async ([tData, holdings]) => {
         if (tData) {
           if (tData.jzrq && (!gzData.jzrq || tData.jzrq >= gzData.jzrq)) {
             gzData.dwjz = tData.dwjz;
@@ -314,6 +342,16 @@ export const fetchFundData = async (c) => {
             gzData.zzl = tData.zzl;
           }
         }
+
+        if (!Number.isFinite(gzData.zzl)) {
+          const eastmoneyNav = await fetchEastmoneyLatestNav(c);
+          if (eastmoneyNav) {
+            if (eastmoneyNav.dwjz) gzData.dwjz = eastmoneyNav.dwjz;
+            if (eastmoneyNav.jzrq) gzData.jzrq = eastmoneyNav.jzrq;
+            if (Number.isFinite(eastmoneyNav.zzl)) gzData.zzl = eastmoneyNav.zzl;
+          }
+        }
+
         resolve({ ...gzData, holdings });
       });
     };
