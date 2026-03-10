@@ -9,11 +9,6 @@ dayjs.tz.setDefault('Asia/Shanghai');
 const TZ = 'Asia/Shanghai';
 const nowInTz = () => dayjs().tz(TZ);
 const toTz = (input) => (input ? dayjs.tz(input, TZ) : nowInTz());
-const QDII_KEYWORDS = ['qdii', '全球', '海外', '标普', '纳斯达克', '恒生', '日经', '美股', '港股'];
-const isQdiiFund = (name = '') => {
-  const normalized = String(name).toLowerCase();
-  return QDII_KEYWORDS.some((keyword) => normalized.includes(keyword));
-};
 
 export const loadScript = (url) => {
   return new Promise((resolve, reject) => {
@@ -140,7 +135,6 @@ export const fetchFundDataFallback = async (c) => {
             gszzl: null,
             zzl: !isNaN(zzl) ? zzl : null,
             noValuation: true,
-            isQdii: isQdiiFund(name),
             holdings: []
           });
         } else {
@@ -182,8 +176,7 @@ export const fetchFundData = async (c) => {
         gsz: json.gsz,
         gztime: json.gztime,
         jzrq: json.jzrq,
-        gszzl: Number.isFinite(gszzlNum) ? gszzlNum : json.gszzl,
-        isQdii: isQdiiFund(json.name)
+        gszzl: Number.isFinite(gszzlNum) ? gszzlNum : json.gszzl
       };
       const tencentPromise = new Promise((resolveT) => {
         const tUrl = `https://qt.gtimg.cn/q=jj${c}`;

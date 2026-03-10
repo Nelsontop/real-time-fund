@@ -23,11 +23,6 @@ const TZ = 'Asia/Shanghai';
 const nowInTz = () => dayjs().tz(TZ);
 const toTz = (input) => (input ? dayjs.tz(input, TZ) : nowInTz());
 const formatDate = (input) => toTz(input).format('YYYY-MM-DD');
-const shouldUseIntradayEstimate = (fund, isTradingDay, now, todayStr) => {
-  if (!fund || fund.noValuation || fund.isQdii) return false;
-  const hasTodayData = fund.jzrq === todayStr;
-  return isTradingDay && now.hour() >= 9 && !hasTodayData;
-};
 
 function FeedbackModal({ onClose, user }) {
   const [submitting, setSubmitting] = useState(false);
@@ -1960,7 +1955,7 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div className="muted" style={{ fontSize: '14px' }}>#{fund?.code}</div>
             <div className="badge" style={{ fontSize: '12px' }}>
-              {fund?.noValuation || fund?.isQdii ? '净值日期' : '估值时间'}: {fund?.noValuation || fund?.isQdii ? (fund?.jzrq || '-') : (fund?.gztime || fund?.time || '-')}
+              {fund?.noValuation ? '净值日期' : '估值时间'}: {fund?.noValuation ? (fund?.jzrq || '-') : (fund?.gztime || fund?.time || '-')}
             </div>
           </div>
 
@@ -1995,11 +1990,6 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
           {fund?.estPricedCoverage > 0.05 && (
             <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: 12, textAlign: 'right' }}>
               基于 {Math.round(fund?.estPricedCoverage * 100)}% 持仓估算
-            </div>
-          )}
-          {fund?.isQdii && (
-            <div style={{ fontSize: '12px', color: 'var(--muted)', marginTop: 8, textAlign: 'right' }}>
-              QDII 基金净值通常存在跨市场时差与 T+1/T+2 披露延迟，盘中估值仅供参考。
             </div>
           )}
         </div>
@@ -2408,12 +2398,13 @@ export default function HomePage() {
     if (!holding || typeof holding.share !== 'number') return null;
 
     const now = nowInTz();
+    const isAfter9 = now.hour() >= 9;
     const hasTodayData = fund.jzrq === todayStr;
     const hasTodayValuation = typeof fund.gztime === 'string' && fund.gztime.startsWith(todayStr);
     const canCalcTodayProfit = hasTodayData || hasTodayValuation;
 
     // 如果是交易日且9点以后，且今日净值未出，则强制使用估值（隐藏涨跌幅列模式）
-    const useValuation = shouldUseIntradayEstimate(fund, isTradingDay, now, todayStr);
+    const useValuation = isTradingDay && isAfter9 && !hasTodayData;
 
     let currentNav;
     let profitToday;
@@ -4706,7 +4697,9 @@ export default function HomePage() {
                                 {(() => {
                                   // 净值/估值列
                                   const now = nowInTz();
-                                  const shouldShowEstimation = shouldUseIntradayEstimate(f, isTradingDay, now, todayStr);
+                                  const isAfter9 = now.hour() >= 9;
+                                  const hasTodayData = f.jzrq === todayStr;
+                                  const shouldShowEstimation = isTradingDay && isAfter9 && !hasTodayData && !f.noValuation;
 
                                   return (
                                     <div className="table-cell text-right value-cell">
@@ -4819,7 +4812,7 @@ export default function HomePage() {
                                   );
                                 })()}
                                 <div className="table-cell text-right time-cell">
-                                  <span className="muted" style={{ fontSize: '12px' }}>{f.noValuation || f.isQdii ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</span>
+                                  <span className="muted" style={{ fontSize: '12px' }}>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</span>
                                 </div>
                               </>
                             ) : (
@@ -4849,8 +4842,8 @@ export default function HomePage() {
 
                                   <div className="actions" style={{ flexShrink: 0 }}>
                                     <div className="badge-v">
-                                      <span>{f.noValuation || f.isQdii ? '净值日期' : '估值时间'}</span>
-                                      <strong>{f.noValuation || f.isQdii ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</strong>
+                                      <span>{f.noValuation ? '净值日期' : '估值时间'}</span>
+                                      <strong>{f.noValuation ? (f.jzrq || '-') : (f.gztime || f.time || '-')}</strong>
                                     </div>
                                   </div>
                                 </div>
