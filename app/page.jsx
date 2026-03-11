@@ -1833,6 +1833,32 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
   const currentData = historyData[timeRange] || [];
   const currentLoading = loading[timeRange];
 
+  const latestOfficialNav = useMemo(() => {
+    const allHistory = historyData['12m'] || [];
+    if (!allHistory.length) return null;
+
+    const latest = allHistory[allHistory.length - 1];
+    if (!latest?.date || typeof latest?.value !== 'number' || Number.isNaN(latest.value)) return null;
+
+    const latestDate = dayjs(latest.date);
+    if (!latestDate.isValid()) return null;
+
+    const fundDate = fund?.jzrq ? dayjs(fund.jzrq) : null;
+    const isFundDateValid = !!fundDate?.isValid();
+
+    if (!isFundDateValid || latestDate.isAfter(fundDate, 'day')) {
+      return {
+        date: latestDate.format('YYYY-MM-DD'),
+        value: latest.value,
+      };
+    }
+
+    return null;
+  }, [historyData, fund?.jzrq]);
+
+  const panelNavDate = latestOfficialNav?.date || fund?.jzrq;
+  const panelDwjz = latestOfficialNav?.value?.toFixed(4) || fund?.dwjz;
+
   // Calculate period change
   const periodChange = useMemo(() => {
     if (!currentData.length) return null;
@@ -1955,14 +1981,14 @@ function FundDetailModal({ fund, onClose, onDelete, hasHolding, isInGroup, onRem
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
             <div className="muted" style={{ fontSize: '14px' }}>#{fund?.code}</div>
             <div className="badge" style={{ fontSize: '12px' }}>
-              {fund?.noValuation ? '净值日期' : '估值时间'}: {fund?.noValuation ? (fund?.jzrq || '-') : (fund?.gztime || fund?.time || '-')}
+              {fund?.noValuation ? '净值日期' : '估值时间'}: {fund?.noValuation ? (panelNavDate || '-') : (fund?.gztime || fund?.time || '-')}
             </div>
           </div>
 
           <div className="row" style={{ gap: 16, marginBottom: 12 }}>
             <div className="stat" style={{ flex: 1 }}>
               <span className="label">单位净值</span>
-              <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>{fund?.dwjz ?? '—'}</span>
+              <span className="value" style={{ fontSize: '18px', fontWeight: 600 }}>{panelDwjz ?? '—'}</span>
             </div>
             <div className="stat" style={{ flex: 1 }}>
               <span className="label">估值净值</span>
@@ -5431,6 +5457,5 @@ export default function HomePage() {
     </div>
   );
 }
-
 
 
