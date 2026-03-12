@@ -66,6 +66,13 @@ const isSameOrAfterDate = (left, right) => {
   return !dayjs(l).isBefore(dayjs(r), 'day');
 };
 
+const isStaleValuation = (gztime, jzrq) => {
+  const valuationDate = normalizeDate(gztime);
+  const navDate = normalizeDate(jzrq);
+  if (!valuationDate || !navDate) return false;
+  return dayjs(valuationDate).isBefore(dayjs(navDate), 'day');
+};
+
 export const loadScript = (url) => {
   return new Promise((resolve, reject) => {
     if (typeof document === 'undefined' || !document.body) return resolve();
@@ -406,6 +413,15 @@ export const fetchFundData = async (c) => {
             if (eastmoneyNav.jzrq) gzData.jzrq = eastmoneyNav.jzrq;
             if (Number.isFinite(eastmoneyNav.zzl)) gzData.zzl = eastmoneyNav.zzl;
           }
+        }
+
+        // 某些基金的估值接口会长期停留在历史日期（例如固定停留在某一天），
+        // 若估值日期早于最新净值日期，则判定估值数据失效并降级为仅净值模式。
+        if (isStaleValuation(gzData.gztime, gzData.jzrq)) {
+          gzData.noValuation = true;
+          gzData.gsz = null;
+          gzData.gszzl = null;
+          gzData.gztime = null;
         }
 
         resolve({ ...gzData, holdings });
