@@ -10,6 +10,62 @@ const TZ = 'Asia/Shanghai';
 const nowInTz = () => dayjs().tz(TZ);
 const toTz = (input) => (input ? dayjs.tz(input, TZ) : nowInTz());
 
+const normalizeDate = (raw) => {
+  if (!raw) return '';
+  const text = String(raw).trim();
+  if (!text) return '';
+
+  const direct = dayjs(text);
+  if (direct.isValid()) return direct.format('YYYY-MM-DD');
+
+  const digits = text.replace(/\D/g, '');
+  if (digits.length >= 8) {
+    const y = digits.slice(0, 4);
+    const m = digits.slice(4, 6);
+    const d = digits.slice(6, 8);
+    const normalized = `${y}-${m}-${d}`;
+    if (dayjs(normalized, 'YYYY-MM-DD', true).isValid()) {
+      return normalized;
+    }
+  }
+
+  return '';
+};
+
+const normalizeDateTime = (raw) => {
+  if (!raw) return '';
+  const text = String(raw).trim();
+  if (!text) return '';
+
+  const direct = dayjs(text);
+  if (direct.isValid()) return direct.format('YYYY-MM-DD HH:mm:ss');
+
+  const digits = text.replace(/\D/g, '');
+  if (digits.length >= 14) {
+    const y = digits.slice(0, 4);
+    const m = digits.slice(4, 6);
+    const d = digits.slice(6, 8);
+    const hh = digits.slice(8, 10);
+    const mm = digits.slice(10, 12);
+    const ss = digits.slice(12, 14);
+    const normalized = `${y}-${m}-${d} ${hh}:${mm}:${ss}`;
+    if (dayjs(normalized, 'YYYY-MM-DD HH:mm:ss', true).isValid()) {
+      return normalized;
+    }
+  }
+
+  const dateOnly = normalizeDate(text);
+  return dateOnly ? `${dateOnly} 00:00:00` : '';
+};
+
+const isSameOrAfterDate = (left, right) => {
+  const l = normalizeDate(left);
+  const r = normalizeDate(right);
+  if (!l) return false;
+  if (!r) return true;
+  return !dayjs(l).isBefore(dayjs(r), 'day');
+};
+
 export const loadScript = (url) => {
   return new Promise((resolve, reject) => {
     if (typeof document === 'undefined' || !document.body) return resolve();
@@ -151,7 +207,7 @@ export const fetchFundDataFallback = async (c) => {
         const name = fundName || p[1] || `未知基金(${c})`;
         const dwjz = p[5];
         const zzl = parseFloat(p[7]);
-        const jzrq = p[8] ? p[8].slice(0, 10) : '';
+        const jzrq = normalizeDate(p[8]);
         if (dwjz) {
           resolve({
             code: c,
@@ -202,8 +258,8 @@ export const fetchFundData = async (c) => {
         name: json.name,
         dwjz: json.dwjz,
         gsz: json.gsz,
-        gztime: json.gztime,
-        jzrq: json.jzrq,
+        gztime: normalizeDateTime(json.gztime) || json.gztime,
+        jzrq: normalizeDate(json.jzrq) || json.jzrq,
         gszzl: Number.isFinite(gszzlNum) ? gszzlNum : json.gszzl
       };
       const tencentPromise = new Promise((resolveT) => {
@@ -217,7 +273,7 @@ export const fetchFundData = async (c) => {
             resolveT({
               dwjz: p[5],
               zzl: parseFloat(p[7]),
-              jzrq: p[8] ? p[8].slice(0, 10) : ''
+              jzrq: normalizeDate(p[8])
             });
           } else {
             resolveT(null);
@@ -336,7 +392,7 @@ export const fetchFundData = async (c) => {
       });
       Promise.all([tencentPromise, holdingsPromise]).then(async ([tData, holdings]) => {
         if (tData) {
-          if (tData.jzrq && (!gzData.jzrq || tData.jzrq >= gzData.jzrq)) {
+          if (isSameOrAfterDate(tData.jzrq, gzData.jzrq)) {
             gzData.dwjz = tData.dwjz;
             gzData.jzrq = tData.jzrq;
             gzData.zzl = tData.zzl;
